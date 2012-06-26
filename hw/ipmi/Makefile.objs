@@ -1,2 +1,4 @@
 common-obj-$(CONFIG_IPMI) += ipmi.o
+common-obj-$(CONFIG_IPMI_KCS) += ipmi_kcs.o
+
 obj-$(CONFIG_ISA_IPMI) += isa_ipmi.o
