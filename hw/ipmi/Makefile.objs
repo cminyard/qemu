@@ -2,5 +2,6 @@ common-obj-$(CONFIG_IPMI) += ipmi.o
 common-obj-$(CONFIG_IPMI_KCS) += ipmi_kcs.o
 common-obj-$(CONFIG_IPMI_BT) += ipmi_bt.o
 common-obj-$(CONFIG_IPMI_LOCAL) += ipmi_sim.o
+common-obj-$(CONFIG_IPMI_EXTERN) += ipmi_extern.o
 
 obj-$(CONFIG_ISA_IPMI) += isa_ipmi.o
