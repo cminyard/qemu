@@ -373,6 +373,44 @@ Add device @var{driver}.  @var{prop}=@var{value} sets driver
 properties.  Valid properties depend on the driver.  To get help on
 possible drivers and properties, use @code{-device help} and
 @code{-device @var{driver},help}.
+
+Some drivers are:
+@item -device isa-ipmi[,interface=kcs|bt][,iobase=@var{val}][,irq=@var{val}][,slave_addr=@var{val}][,chardev=name]
+
+Add an IPMI device.  This also adds a corresponding ACPI and SMBIOS entries,
+if appropriate.  The following options are handled:
+@table @option
+@item interface=kcs|bt
+Define the interface type to use.  Currently the IPMI-defined KCS and
+BT interfaces are handled.  The default is KCS.
+@item iobase=@var{val}
+Define the I/O address of the interface.  The default is 0xca0 for KCS
+and 0xe4 for BT.
+@item irq=@var{val}
+Define the interrupt to use.  The default is 5.  To disable interrupts,
+set this to 0.
+@item slave_addr=@var{val}
+The IPMI slave address to use for the BMC.  The default is 0x20.
+This address is the BMC's address on the I2C network of management
+controllers.  If you don't know what this means, it is safe to ignore
+it.
+@item chardev=name
+If a chardev is not specified, the IPMI driver uses a built-in baseboard
+management controller (BMC) simulator.  It provides a basic BMC with a
+watchdog timer and associated sensor.
+
+If a chardev is specified, A connection is made to an external BMC
+simulator.  If you do this, it is strongly recommended that you use
+the "reconnect=" chardev option to reconnect to the simulator if the
+connection is lost.  Note that if this is not used carefully, it can
+be a security issue, as the interface has the ability to send resets,
+NMIs, and power off the VM.  It's best if QEMU makes a connection to
+an external simulator running on a secure port on localhost, so
+neither the simulator nor QEMU is exposed to any outside network.
+
+See the "lanserv/README.vm" file in the OpenIPMI library for more
+details on the external interface.
+@end table
 ETEXI
 
 DEF("name", HAS_ARG, QEMU_OPTION_name,
