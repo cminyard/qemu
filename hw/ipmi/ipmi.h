@@ -153,6 +153,8 @@ typedef struct IPMIInterfaceClass {
                        unsigned char *rsp, unsigned int rsp_len);
 } IPMIInterfaceClass;
 
+extern const VMStateDescription vmstate_IPMIInterface;
+
 void ipmi_interface_init(IPMIInterface *s, Error **errp);
 void ipmi_interface_reset(IPMIInterface *s);
 

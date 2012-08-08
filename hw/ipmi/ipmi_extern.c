@@ -63,10 +63,10 @@ typedef struct IPMIExternBmc {
 
     unsigned char inbuf[MAX_IPMI_MSG_SIZE + 2];
     unsigned int inpos;
-    int in_escape;
-    int in_too_many;
-    int waiting_rsp;
-    int sending_cmd;
+    bool in_escape;
+    bool in_too_many;
+    bool waiting_rsp;
+    bool sending_cmd;
 
     unsigned char outbuf[(MAX_IPMI_MSG_SIZE + 2) * 2 + 1];
     unsigned int outpos;
@@ -425,12 +425,46 @@ static void ipmi_extern_handle_reset(IPMIBmc *b)
     continue_send(es);
 }
 
+static int ipmi_extern_post_migrate(void *opaque, int version_id)
+{
+    IPMIExternBmc *es = opaque;
+
+    /*
+     * We don't directly restore waiting_rsp, Instead, we return an
+     * error on the interface if a response was being waited for.
+     */
+    if (es->waiting_rsp) {
+        IPMIInterface *s = es->parent.intf;
+        IPMIInterfaceClass *k = IPMI_INTERFACE_GET_CLASS(s);
+
+        es->waiting_rsp = 0;
+        es->inbuf[1] = es->outbuf[1] | 0x04;
+        es->inbuf[2] = es->outbuf[2];
+        es->inbuf[3] = IPMI_CC_BMC_INIT_IN_PROGRESS;
+        k->handle_rsp(s, es->outbuf[0], es->inbuf + 1, 3);
+    }
+    return 0;
+}
+
+static const VMStateDescription vmstate_ipmi_extern = {
+    .name = TYPE_IPMI_BMC_EXTERN,
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .post_load = ipmi_extern_post_migrate,
+    .fields      = (VMStateField[]) {
+        VMSTATE_BOOL(send_reset, IPMIExternBmc),
+        VMSTATE_BOOL(waiting_rsp, IPMIExternBmc),
+        VMSTATE_END_OF_LIST()
+    }
+};
+
 static void ipmi_extern_init(IPMIBmc *b, Error **errp)
 {
     IPMIExternBmc *es = IPMI_BMC_EXTERN(b);
 
     es->extern_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, extern_timeout, es);
     qemu_chr_add_handlers(es->parent.chr, can_receive, receive, chr_event, es);
+    vmstate_register(NULL, 0, &vmstate_ipmi_extern, es);
 }
 
 static void ipmi_extern_class_init(ObjectClass *klass, void *data)

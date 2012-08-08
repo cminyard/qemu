@@ -118,6 +118,23 @@ void ipmi_bmc_init(IPMIBmc *s, Error **errp)
     }
 }
 
+const VMStateDescription vmstate_IPMIInterface = {
+    .name = TYPE_IPMI_INTERFACE,
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .fields      = (VMStateField[]) {
+        VMSTATE_BOOL(obf_irq_set, IPMIInterface),
+        VMSTATE_BOOL(atn_irq_set, IPMIInterface),
+        VMSTATE_BOOL(use_irq, IPMIInterface),
+        VMSTATE_BOOL(irqs_enabled, IPMIInterface),
+        VMSTATE_UINT32(outpos, IPMIInterface),
+        VMSTATE_UINT32(outlen, IPMIInterface),
+        VMSTATE_VBUFFER_UINT32(inmsg, IPMIInterface, 1, NULL, 0, inlen),
+        VMSTATE_BOOL(write_end, IPMIInterface),
+        VMSTATE_END_OF_LIST()
+    }
+};
+
 static TypeInfo ipmi_bmc_type_info = {
     .name = TYPE_IPMI_BMC,
     .parent = TYPE_OBJECT,

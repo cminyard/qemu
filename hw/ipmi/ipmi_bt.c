@@ -335,6 +335,19 @@ static void ipmi_bt_handle_reset(IPMIInterface *s, bool is_cold)
     }
 }
 
+static const VMStateDescription vmstate_ipmi_bt = {
+    .name = TYPE_IPMI_INTERFACE_BT,
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .fields      = (VMStateField[]) {
+        VMSTATE_UINT8(control_reg, IPMIBtInterface),
+        VMSTATE_UINT8(mask_reg, IPMIBtInterface),
+        VMSTATE_UINT8(waiting_rsp, IPMIBtInterface),
+        VMSTATE_UINT8(waiting_seq, IPMIBtInterface),
+        VMSTATE_END_OF_LIST()
+    }
+};
+
 static void ipmi_bt_init(IPMIInterface *s, Error **errp)
 {
     IPMIBtInterface *bt = IPMI_INTERFACE_BT(s);
@@ -345,6 +358,7 @@ static void ipmi_bt_init(IPMIInterface *s, Error **errp)
     s->io_length = 3;
 
     memory_region_init_io(&s->io, NULL, &ipmi_bt_io_ops, bt, "ipmi-bt", 3);
+    vmstate_register(NULL, 0, &vmstate_ipmi_bt, bt);
 }
 
 static void ipmi_bt_class_init(ObjectClass *klass, void *data)
