@@ -299,6 +299,20 @@ static void ipmi_kcs_set_atn(IPMIInterface *s, int val, int irq)
     }
 }
 
+static const VMStateDescription vmstate_ipmi_kcs = {
+    .name = TYPE_IPMI_INTERFACE_KCS,
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .fields      = (VMStateField[]) {
+        VMSTATE_UINT8(status_reg, IPMIKcsInterface),
+        VMSTATE_UINT8(data_out_reg, IPMIKcsInterface),
+        VMSTATE_INT16(data_in_reg, IPMIKcsInterface),
+        VMSTATE_INT16(cmd_reg, IPMIKcsInterface),
+        VMSTATE_UINT8(waiting_rsp, IPMIKcsInterface),
+        VMSTATE_END_OF_LIST()
+    }
+};
+
 static void ipmi_kcs_init(IPMIInterface *s, Error **errp)
 {
     IPMIKcsInterface *kcs = IPMI_INTERFACE_KCS(s);
@@ -309,6 +323,7 @@ static void ipmi_kcs_init(IPMIInterface *s, Error **errp)
     s->io_length = 2;
 
     memory_region_init_io(&s->io, NULL, &ipmi_kcs_io_ops, kcs, "ipmi-kcs", 2);
+    vmstate_register(NULL, 0, &vmstate_ipmi_kcs, kcs);
 }
 
 static void ipmi_kcs_class_init(ObjectClass *class, void *data)

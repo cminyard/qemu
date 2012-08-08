@@ -1658,6 +1658,34 @@ static const uint8_t init_sdrs[] = {
     0xff, 0xff, 0x00, 0x00, 0x00
 };
 
+static const VMStateDescription vmstate_ipmi_sim = {
+    .name = TYPE_IPMI_BMC_SIMULATOR,
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .fields      = (VMStateField[]) {
+        VMSTATE_UINT8(bmc_global_enables, IPMISimBmc),
+        VMSTATE_UINT8(msg_flags, IPMISimBmc),
+        VMSTATE_BOOL(watchdog_initialized, IPMISimBmc),
+        VMSTATE_UINT8(watchdog_use, IPMISimBmc),
+        VMSTATE_UINT8(watchdog_action, IPMISimBmc),
+        VMSTATE_UINT8(watchdog_pretimeout, IPMISimBmc),
+        VMSTATE_BOOL(watchdog_expired, IPMISimBmc),
+        VMSTATE_UINT16(watchdog_timeout, IPMISimBmc),
+        VMSTATE_BOOL(watchdog_running, IPMISimBmc),
+        VMSTATE_BOOL(watchdog_preaction_ran, IPMISimBmc),
+        VMSTATE_INT64(watchdog_expiry, IPMISimBmc),
+        VMSTATE_UINT8_ARRAY(evtbuf, IPMISimBmc, 16),
+        VMSTATE_UINT8(sensors[IPMI_WATCHDOG_SENSOR].status, IPMISimBmc),
+        VMSTATE_UINT8(sensors[IPMI_WATCHDOG_SENSOR].reading, IPMISimBmc),
+        VMSTATE_UINT16(sensors[IPMI_WATCHDOG_SENSOR].states, IPMISimBmc),
+        VMSTATE_UINT16(sensors[IPMI_WATCHDOG_SENSOR].assert_states, IPMISimBmc),
+        VMSTATE_UINT16(sensors[IPMI_WATCHDOG_SENSOR].deassert_states,
+                       IPMISimBmc),
+        VMSTATE_UINT16(sensors[IPMI_WATCHDOG_SENSOR].assert_enable, IPMISimBmc),
+        VMSTATE_END_OF_LIST()
+    }
+};
+
 static void ipmi_sim_init(IPMIBmc *b, Error **errp)
 {
     unsigned int i;
@@ -1705,6 +1733,8 @@ static void ipmi_sim_init(IPMIBmc *b, Error **errp)
     register_cmds(ss);
 
     ss->timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, ipmi_timeout, ss);
+
+    vmstate_register(NULL, 0, &vmstate_ipmi_sim, ss);
 }
 
 static void ipmi_sim_class_init(ObjectClass *klass, void *data)

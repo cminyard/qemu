@@ -121,11 +121,23 @@ static Property ipmi_isa_properties[] = {
     DEFINE_PROP_END_OF_LIST(),
 };
 
+static const VMStateDescription vmstate_isa_ipmi = {
+    .name = TYPE_ISA_IPMI,
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .fields      = (VMStateField[]) {
+        VMSTATE_STRUCT_POINTER(intf, ISAIPMIDevice, vmstate_IPMIInterface,
+                               IPMIInterface),
+        VMSTATE_END_OF_LIST()
+    }
+};
+
 static void ipmi_isa_class_initfn(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     dc->realize = ipmi_isa_realizefn;
     dc->reset = ipmi_isa_reset;
+    dc->vmsd = &vmstate_isa_ipmi;
     dc->props = ipmi_isa_properties;
 }
 
