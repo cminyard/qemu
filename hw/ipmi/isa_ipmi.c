@@ -23,6 +23,9 @@
  */
 #include "hw/hw.h"
 #include "hw/isa/isa.h"
+#include "hw/acpi/aml-build.h"
+#include "hw/acpi/acpi.h"
+#include "hw/acpi/acpi-hooks.h"
 #include "hw/i386/pc.h"
 #include "qemu/timer.h"
 #include "sysemu/char.h"
@@ -39,6 +42,8 @@ typedef struct ISAIPMIDevice {
     char *interface;
     int intftype;
     uint32_t iobase;
+    uint32_t iolength;
+    uint8_t regspacing;
     int32 isairq;
     uint8_t slave_addr;
     uint8_t version;
@@ -83,6 +88,55 @@ static void ipmi_encode_smbios(void *opaque)
 }
 #endif
 
+#ifdef CONFIG_ACPI
+static Aml *aml_ipmi_crs(ISAIPMIDevice *info)
+{
+    Aml *crs = aml_resource_template();
+    uint8_t regspacing = info->regspacing;
+
+    if (regspacing == 1) {
+        regspacing = 0;
+    }
+
+    aml_append(crs, aml_io(aml_decode16, info->iobase,
+                           info->iobase + info->iolength - 1,
+                           regspacing, info->iolength));
+    if (info->isairq) {
+        aml_append(crs, aml_irq_no_flags(info->isairq));
+    }
+
+    return crs;
+}
+
+static void
+ipmi_encode_acpi(Aml *ssdt, void *opaque)
+{
+    ISAIPMIDevice *info = opaque;
+    char *name;
+    Aml *scope = aml_scope("\\_SB.PCI0.ISA");
+    Aml *dev = aml_device("MI0");
+    Aml *method;
+    int version = ((info->version & 0xf0) << 4) | (info->version & 0x0f);
+    
+    name = g_strdup_printf("ipmi_%s", info->interface);
+
+    aml_append(dev, aml_name_decl("_HID", aml_eisaid("IPI0001")));
+    aml_append(dev, aml_name_decl("_STR", aml_string("%s", name)));
+    aml_append(dev, aml_name_decl("_UID", aml_int(0)));
+    aml_append(dev, aml_name_decl("_CRS", aml_ipmi_crs(info)));
+    method = aml_method("_IFT", 0);
+    aml_append(method, aml_return(aml_int(info->intftype)));
+    aml_append(dev, method);
+    method = aml_method("_SRV", 0);
+    aml_append(method, aml_return(aml_int(version)));
+    aml_append(dev, method);
+
+    aml_append(scope, dev);
+
+    aml_append(ssdt, scope);
+}
+#endif
+
 static void ipmi_isa_realizefn(DeviceState *dev, Error **errp)
 {
     ISADevice *isadev = ISA_DEVICE(dev);
@@ -112,6 +166,7 @@ static void ipmi_isa_realizefn(DeviceState *dev, Error **errp)
     intfk = IPMI_INTERFACE_GET_CLASS(intf);
     bmc->intf = intf;
     intf->bmc = bmc;
+    ipmi->regspacing = 1;
     intf->io_base = ipmi->iobase;
     intf->slave_addr = ipmi->slave_addr;
     ipmi->intftype = intfk->smbios_type;
@@ -120,6 +175,7 @@ static void ipmi_isa_realizefn(DeviceState *dev, Error **errp)
     if (*errp) {
         return;
     }
+    ipmi->iolength = intf->io_length;
     ipmi_bmc_init(bmc, errp);
     if (*errp) {
         return;
@@ -149,6 +205,9 @@ static void ipmi_isa_realizefn(DeviceState *dev, Error **errp)
     isa_register_ioport(isadev, &intf->io, intf->io_base);
 #ifdef TARGET_I386
     smbios_register_device_table_handler(ipmi_encode_smbios, ipmi);
+#endif
+#ifdef CONFIG_ACPI
+    add_device_ssdt_encoder(ipmi_encode_acpi, ipmi);
 #endif
 }
 
