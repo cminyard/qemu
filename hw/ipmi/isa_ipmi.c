@@ -37,6 +37,8 @@ typedef struct ISAIPMIDevice {
     ISADevice dev;
     char *interface;
     uint32_t iobase;
+    uint32_t iolength;
+    uint8_t regspacing;
     int32 isairq;
     uint8_t slave_addr;
     CharDriverState *chr;
@@ -73,12 +75,14 @@ static void ipmi_isa_realizefn(DeviceState *dev, Error **errp)
     intfk = IPMI_INTERFACE_GET_CLASS(intf);
     bmc->intf = intf;
     intf->bmc = bmc;
+    ipmi->regspacing = 1;
     intf->io_base = ipmi->iobase;
     intf->slave_addr = ipmi->slave_addr;
     ipmi_interface_init(intf, errp);
     if (*errp) {
         return;
     }
+    ipmi->iolength = intf->io_length;
     ipmi_bmc_init(bmc, errp);
     if (*errp) {
         return;

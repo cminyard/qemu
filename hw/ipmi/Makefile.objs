@@ -5,3 +5,4 @@ common-obj-$(CONFIG_IPMI_BT) += ipmi_bt.o
 common-obj-$(CONFIG_IPMI_LOCAL) += ipmi_sim.o
 common-obj-$(CONFIG_IPMI_EXTERN) += ipmi_extern.o
 common-obj-$(call land,$(CONFIG_IPMI),$(CONFIG_SMBIOS)) += ipmi_smbios.o
+common-obj-$(call land,$(CONFIG_IPMI),$(CONFIG_ACPI)) += ipmi_acpi.o
