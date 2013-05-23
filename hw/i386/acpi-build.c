@@ -59,6 +59,8 @@
 #include "qapi/qmp/qint.h"
 #include "qom/qom-qobject.h"
 
+#include "hw/acpi/ipmi.h"
+
 /* These are used to size the ACPI tables for -M pc-i440fx-1.7 and
  * -M pc-i440fx-2.0.  Even if the actual amount of AML generated grows
  * a little bit, there should be plenty of free space since the DSDT
@@ -1344,6 +1346,8 @@ build_ssdt(GArray *table_data, GArray *linker,
         }
         aml_append(ssdt, sb_scope);
     }
+
+    acpi_add_ipmi(ssdt);
 
     /* copy AML table into ACPI tables blob and patch header there */
     g_array_append_vals(table_data, ssdt->buf->data, ssdt->buf->len);

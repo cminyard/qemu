@@ -5,3 +5,5 @@ common-obj-$(CONFIG_ACPI_MEMORY_HOTPLUG) += memory_hotplug.o
 common-obj-$(CONFIG_ACPI) += acpi_interface.o
 common-obj-$(CONFIG_ACPI) += bios-linker-loader.o
 common-obj-$(CONFIG_ACPI) += aml-build.o
+common-obj-$(call land,$(CONFIG_ACPI),$(CONFIG_IPMI)) += ipmi.o
+common-obj-$(call land,$(CONFIG_ACPI),$(call lnot,$(CONFIG_IPMI))) += noipmi.o
