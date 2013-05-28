@@ -27,6 +27,14 @@ void smbios_get_tables(uint8_t **tables, size_t *tables_len,
                        uint8_t **anchor, size_t *anchor_len);
 
 /*
+ * Add an external entry to the SMBIOS table.  Can only be called
+ * from a registered device table handler.  This will store the
+ * given data in a queue and append it when the SMBIOS table is
+ * built.
+ */
+void smbios_add_table_entry(void *data, int size, bool append_zeros);
+
+/*
  * SMBIOS spec defined tables
  */
 
