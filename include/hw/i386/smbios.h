@@ -27,6 +27,19 @@ void smbios_get_tables(uint8_t **tables, size_t *tables_len,
                        uint8_t **anchor, size_t *anchor_len);
 
 /*
+ * Add an external entry to the SMBIOS table.  Can only be called
+ * from a registered device table handler.
+ */
+int smbios_table_entry_add(void *data, int size, bool append_zeros);
+
+/*
+ * When constructing SMBIOS tables, call a function at the end of the
+ * add process to allow devices to add their own SMBIOS table entries.
+ */
+void smbios_register_device_table_handler(void (*handle_device_table)
+                                                (void *opaque),
+                                          void *opaque);
+/*
  * SMBIOS spec defined tables
  */
 
