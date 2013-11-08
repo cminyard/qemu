@@ -1,1 +1,3 @@
 common-obj-$(CONFIG_SMBIOS) += smbios.o
+common-obj-$(call land,$(CONFIG_SMBIOS),$(CONFIG_IPMI)) += ipmi.o
+common-obj-$(call land,$(CONFIG_SMBIOS),$(call lnot,$(CONFIG_IPMI))) += noipmi.o
