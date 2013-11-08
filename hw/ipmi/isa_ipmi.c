@@ -27,6 +27,7 @@
 #include "qemu/timer.h"
 #include "sysemu/char.h"
 #include "sysemu/sysemu.h"
+#include "hw/i386/smbios.h"
 #include "ipmi.h"
 
 /* This is the type the user specifies on the -device command line */
@@ -36,12 +37,51 @@
 typedef struct ISAIPMIDevice {
     ISADevice dev;
     char *interface;
+    int intftype;
     uint32_t iobase;
     int32 isairq;
     uint8_t slave_addr;
+    uint8_t version;
     CharDriverState *chr;
     IPMIInterface *intf;
 } ISAIPMIDevice;
+
+#ifdef TARGET_I386
+/* SMBIOS type 38 - IPMI */
+struct smbios_type_38 {
+    struct smbios_structure_header header;
+    uint8_t interface_type;
+    uint8_t ipmi_spec_revision;
+    uint8_t i2c_slave_address;
+    uint8_t nv_storage_device_address;
+    uint64_t base_address;
+    uint8_t base_address_modifier;
+    uint8_t interrupt_number;
+} QEMU_PACKED;
+
+static void ipmi_encode_smbios(void *opaque)
+{
+    ISAIPMIDevice *info = opaque;
+    struct smbios_type_38 smb38;
+
+    smb38.header.type = 38;
+    smb38.header.length = sizeof(smb38);
+    smb38.header.handle = cpu_to_le16(0x3000);
+    smb38.interface_type = info->intftype;
+    smb38.ipmi_spec_revision = info->version;
+    smb38.i2c_slave_address = info->slave_addr;
+    smb38.nv_storage_device_address = 0;
+
+    /* or 1 to set it to I/O space */
+    smb38.base_address = cpu_to_le64(info->iobase | 1);
+
+     /* 1-byte boundaries, addr bit0=0, level triggered irq */
+    smb38.base_address_modifier = 1;
+    smb38.interrupt_number = info->isairq;
+    smbios_table_entry_add((struct smbios_structure_header *) &smb38,
+                           sizeof(smb38), true);
+}
+#endif
 
 static void ipmi_isa_realizefn(DeviceState *dev, Error **errp)
 {
@@ -50,6 +90,7 @@ static void ipmi_isa_realizefn(DeviceState *dev, Error **errp)
     char typename[20];
     Object *intfobj;
     IPMIInterface *intf;
+    IPMIInterfaceClass *intfk;
     Object *bmcobj;
     IPMIBmc *bmc;
 
@@ -68,10 +109,13 @@ static void ipmi_isa_realizefn(DeviceState *dev, Error **errp)
              TYPE_IPMI_INTERFACE_PREFIX "%s", ipmi->interface);
     intfobj = object_new(typename);
     intf = IPMI_INTERFACE(intfobj);
+    intfk = IPMI_INTERFACE_GET_CLASS(intf);
     bmc->intf = intf;
     intf->bmc = bmc;
     intf->io_base = ipmi->iobase;
     intf->slave_addr = ipmi->slave_addr;
+    ipmi->intftype = intfk->smbios_type;
+    ipmi->version = 0x20; /* Version 2.0 */
     ipmi_interface_init(intf, errp);
     if (*errp) {
         return;
@@ -103,6 +147,9 @@ static void ipmi_isa_realizefn(DeviceState *dev, Error **errp)
     qdev_set_legacy_instance_id(dev, intf->io_base, intf->io_length);
 
     isa_register_ioport(isadev, &intf->io, intf->io_base);
+#ifdef TARGET_I386
+    smbios_register_device_table_handler(ipmi_encode_smbios, ipmi);
+#endif
 }
 
 static void ipmi_isa_reset(DeviceState *qdev)
