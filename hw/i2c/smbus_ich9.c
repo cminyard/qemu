@@ -41,6 +41,8 @@
 typedef struct ICH9SMBState {
     PCIDevice dev;
 
+    bool irq_enabled;
+
     PMSMBus smb;
 } ICH9SMBState;
 
@@ -49,7 +51,9 @@ static const VMStateDescription vmstate_ich9_smbus = {
     .version_id = 1,
     .minimum_version_id = 1,
     .fields = (VMStateField[]) {
-        VMSTATE_PCI_DEVICE(dev, struct ICH9SMBState),
+        VMSTATE_PCI_DEVICE(dev, ICH9SMBState),
+        VMSTATE_BOOL(irq_enabled, ICH9SMBState),
+        VMSTATE_STRUCT(smb, ICH9SMBState, 1, pmsmb_vmstate, struct PMSMBus),
         VMSTATE_END_OF_LIST()
     }
 };
@@ -62,11 +66,15 @@ static void ich9_smbus_write_config(PCIDevice *d, uint32_t address,
     pci_default_write_config(d, address, val, len);
     if (range_covers_byte(address, len, ICH9_SMB_HOSTC)) {
         uint8_t hostc = s->dev.config[ICH9_SMB_HOSTC];
-        if ((hostc & ICH9_SMB_HOSTC_HST_EN) &&
-            !(hostc & ICH9_SMB_HOSTC_I2C_EN)) {
+        if (hostc & ICH9_SMB_HOSTC_HST_EN) {
             memory_region_set_enabled(&s->smb.io, true);
         } else {
             memory_region_set_enabled(&s->smb.io, false);
+        }
+        s->smb.i2c_enable = (hostc & ICH9_SMB_HOSTC_I2C_EN) != 0;
+        if (hostc & ICH9_SMB_HOSTC_SSRESET) {
+            s->smb.reset(&s->smb);
+            s->dev.config[ICH9_SMB_HOSTC] &= ~ICH9_SMB_HOSTC_SSRESET;
         }
     }
 }
@@ -106,11 +114,24 @@ static void ich9_smb_class_init(ObjectClass *klass, void *data)
     dc->cannot_instantiate_with_device_add_yet = true;
 }
 
+static void ich9_smb_set_irq(PMSMBus *pmsmb, bool enabled)
+{
+    ICH9SMBState *s = pmsmb->opaque;
+
+    if (enabled == s->irq_enabled)
+        return;
+
+    s->irq_enabled = enabled;
+    pci_set_irq(&s->dev, enabled);
+}
+
 I2CBus *ich9_smb_init(PCIBus *bus, int devfn, uint32_t smb_io_base)
 {
     PCIDevice *d =
         pci_create_simple_multifunction(bus, devfn, true, TYPE_ICH9_SMB_DEVICE);
     ICH9SMBState *s = ICH9_SMB_DEVICE(d);
+    s->smb.set_irq = ich9_smb_set_irq;
+    s->smb.opaque = s;
     return s->smb.smbus;
 }
 

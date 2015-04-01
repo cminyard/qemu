@@ -73,9 +73,10 @@ int smbus_read_byte(I2CBus *bus, uint8_t addr, uint8_t command);
 int smbus_write_byte(I2CBus *bus, uint8_t addr, uint8_t command, uint8_t data);
 int smbus_read_word(I2CBus *bus, uint8_t addr, uint8_t command);
 int smbus_write_word(I2CBus *bus, uint8_t addr, uint8_t command, uint16_t data);
-int smbus_read_block(I2CBus *bus, uint8_t addr, uint8_t command, uint8_t *data);
+int smbus_read_block(I2CBus *bus, uint8_t addr, uint8_t command, uint8_t *data,
+                     int len, bool recv_len);
 int smbus_write_block(I2CBus *bus, uint8_t addr, uint8_t command, uint8_t *data,
-                      int len);
+                      int len, bool send_len);
 
 void smbus_eeprom_init(I2CBus *smbus, int nb_eeprom,
                        const uint8_t *eeprom_spd, int size);
