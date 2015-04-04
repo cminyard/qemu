@@ -38,8 +38,9 @@ typedef struct I2CSlaveClass
     /* Slave to master.  */
     int (*recv)(I2CSlave *s);
 
-    /* Notify the slave of a bus state change.  */
+    /* Notify the slave of a bus state change.  Only one should be set. */
     void (*event)(I2CSlave *s, enum i2c_event event);
+    int (*event_check)(I2CSlave *s, enum i2c_event event);
 } I2CSlaveClass;
 
 struct I2CSlave

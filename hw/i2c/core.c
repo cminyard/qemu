@@ -106,7 +106,9 @@ int i2c_start_transfer(I2CBus *bus, uint8_t address, int recv)
     /* If the bus is already busy, assume this is a repeated
        start condition.  */
     bus->current_dev = slave;
-    if (sc->event) {
+    if (sc->event_check) {
+        return sc->event_check(slave, recv ? I2C_START_RECV : I2C_START_SEND);
+    } else if (sc->event) {
         sc->event(slave, recv ? I2C_START_RECV : I2C_START_SEND);
     }
     return 0;
@@ -122,7 +124,9 @@ void i2c_end_transfer(I2CBus *bus)
     }
 
     sc = I2C_SLAVE_GET_CLASS(dev);
-    if (sc->event) {
+    if (sc->event_check) {
+        sc->event_check (dev, I2C_FINISH);
+    } else if (sc->event) {
         sc->event(dev, I2C_FINISH);
     }
 
@@ -173,7 +177,9 @@ void i2c_nack(I2CBus *bus)
     }
 
     sc = I2C_SLAVE_GET_CLASS(dev);
-    if (sc->event) {
+    if (sc->event_check) {
+        sc->event_check (dev, I2C_NACK);
+    } else if (sc->event) {
         sc->event(dev, I2C_NACK);
     }
 }
