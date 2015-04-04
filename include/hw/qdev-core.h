@@ -274,6 +274,8 @@ struct BusState {
     QTAILQ_HEAD(, BusChild) children;
     QLIST_ENTRY(BusState) sibling;
     ResettableState reset;
+    void (*child_added)(BusState *bus, DeviceState *child);
+    void (*child_removed)(BusState *bus, DeviceState *child);
 };
 
 /**

@@ -757,6 +757,10 @@ static void device_set_realized(Object *obj, bool value, Error **errp)
             }
         }
 
+        if (dev->parent_bus && dev->parent_bus->child_added) {
+            dev->parent_bus->child_added(dev->parent_bus, dev);
+        }
+
         if (dc->realize) {
             dc->realize(dev, &local_err);
             if (local_err != NULL) {
@@ -848,6 +852,9 @@ static void device_set_realized(Object *obj, bool value, Error **errp)
         }
         if (dc->unrealize) {
             dc->unrealize(dev);
+        }
+        if (dev->parent_bus && dev->parent_bus->child_removed) {
+                dev->parent_bus->child_removed(dev->parent_bus, dev);
         }
         dev->pending_deleted_event = true;
         DEVICE_LISTENER_CALL(unrealize, Reverse, dev);
