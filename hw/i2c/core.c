@@ -135,7 +135,15 @@ int i2c_start_transfer(I2CBus *bus, uint8_t address, int recv)
         sc = I2C_SLAVE_GET_CLASS(node->elt);
         /* If the bus is already busy, assume this is a repeated
            start condition.  */
-        if (sc->event) {
+        if (sc->event_check) {
+            int rv;
+
+            rv = sc->event_check(node->elt,
+                                 recv ? I2C_START_RECV : I2C_START_SEND);
+            if (rv && !bus->broadcast) {
+                return rv;
+            }
+        } else if (sc->event) {
             sc->event(node->elt, recv ? I2C_START_RECV : I2C_START_SEND);
         }
     }
@@ -149,7 +157,9 @@ void i2c_end_transfer(I2CBus *bus)
 
     QLIST_FOREACH_SAFE(node, &bus->current_devs, next, next) {
         sc = I2C_SLAVE_GET_CLASS(node->elt);
-        if (sc->event) {
+        if (sc->event_check) {
+            sc->event_check(node->elt, I2C_FINISH);
+        } else if (sc->event) {
             sc->event(node->elt, I2C_FINISH);
         }
         QLIST_REMOVE(node, next);
@@ -217,7 +227,9 @@ void i2c_nack(I2CBus *bus)
 
     QLIST_FOREACH(node, &bus->current_devs, next) {
         sc = I2C_SLAVE_GET_CLASS(node->elt);
-        if (sc->event) {
+        if (sc->event_check) {
+            sc->event_check(node->elt, I2C_NACK);
+        } else if (sc->event) {
             sc->event(node->elt, I2C_NACK);
         }
     }
