@@ -209,6 +209,8 @@ struct BusState {
     int num_children;
     QTAILQ_HEAD(, BusChild) children;
     QLIST_ENTRY(BusState) sibling;
+    void (*child_added)(BusState *bus, DeviceState *child);
+    void (*child_removed)(BusState *bus, DeviceState *child);
 };
 
 /**
