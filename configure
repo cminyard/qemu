@@ -5073,6 +5073,9 @@ if test "$linux" = "yes" ; then
     fi
 fi
 
+# Copy these from the default config to the target config
+defconfig_to_target="CONFIG_ACPI"
+
 for target in $target_list; do
 target_dir="$target"
 config_target_mak=$target_dir/config-target.mak
@@ -5430,6 +5433,10 @@ fi
 
 echo "LDFLAGS+=$ldflags" >> $config_target_mak
 echo "QEMU_CFLAGS+=$cflags" >> $config_target_mak
+
+for i in $defconfig_to_target; do
+        grep $i $source_path/default-configs/${target}.mak >> $config_target_mak
+done
 
 done # for target in $targets
 
