@@ -35,6 +35,7 @@
 #include "hw/timer/hpet.h"
 #include "hw/i386/acpi-defs.h"
 #include "hw/acpi/acpi.h"
+#include "hw/acpi/acpi-dev-tables.h"
 #include "hw/nvram/fw_cfg.h"
 #include "hw/acpi/bios-linker-loader.h"
 #include "hw/loader.h"
@@ -1377,6 +1378,7 @@ void acpi_build(PcGuestInfo *guest_info, AcpiBuildTables *tables)
     AcpiMcfgInfo mcfg;
     PcPciInfo pci;
     uint8_t *u;
+    struct acpi_dev_table *dt;
     size_t aml_len = 0;
     GArray *tables_blob = tables->table_data;
 
@@ -1446,6 +1448,21 @@ void acpi_build(PcGuestInfo *guest_info, AcpiBuildTables *tables)
     if (acpi_has_iommu()) {
         acpi_add_table(table_offsets, tables_blob);
         build_dmar_q35(tables_blob, tables->linker);
+    }
+
+    /* Add tables from devices. */
+    for (dt = acpi_dev_table_first(); dt; dt = acpi_dev_table_next(dt)) {
+        unsigned len = acpi_dev_table_len(dt);
+        void *data = acpi_dev_table_data(dt);
+
+        acpi_add_table(table_offsets, tables_blob);
+        acpi_data_push(tables_blob, sizeof(AcpiTableHeader));
+        g_array_append_vals(tables_blob, data, len);
+        build_header(tables->linker, tables_blob,
+            (void *)(tables_blob->data + tables_blob->len -
+                     len - sizeof(AcpiTableHeader)),
+            acpi_dev_table_sig(dt), len + sizeof(AcpiTableHeader),
+            acpi_dev_table_rev(dt));
     }
 
     /* Add tables supplied by user (if any) */
