@@ -35,6 +35,7 @@
 #include "hw/timer/hpet.h"
 #include "hw/i386/acpi-defs.h"
 #include "hw/acpi/acpi.h"
+#include "hw/acpi/acpi-hooks.h"
 #include "hw/nvram/fw_cfg.h"
 #include "hw/acpi/bios-linker-loader.h"
 #include "hw/loader.h"
@@ -1007,6 +1008,8 @@ build_ssdt(GArray *table_data, GArray *linker,
         }
         aml_append(ssdt, sb_scope);
     }
+
+    call_device_ssdt_encoders(ssdt);
 
     /* copy AML table into ACPI tables blob and patch header there */
     g_array_append_vals(table_data, ssdt->buf->data, ssdt->buf->len);
