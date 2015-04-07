@@ -764,8 +764,6 @@ static FWCfgState *bochs_bios_init(AddressSpace *as, PCMachineState *pcms)
                      acpi_tables, acpi_tables_len);
     fw_cfg_add_i32(fw_cfg, FW_CFG_IRQ0_OVERRIDE, kvm_allows_irq0_override());
 
-    pc_build_smbios(fw_cfg);
-
     fw_cfg_add_bytes(fw_cfg, FW_CFG_E820_TABLE,
                      &e820_reserve, sizeof(e820_reserve));
     fw_cfg_add_file(fw_cfg, "etc/e820", e820_table,
@@ -1161,6 +1159,7 @@ void pc_machine_done(Notifier *notifier, void *data)
 {
     PCMachineState *pcms = container_of(notifier,
                                         PCMachineState, machine_done);
+    FWCfgState *fw_cfg = pcms->fw_cfg;
     PCIBus *bus = pcms->bus;
 
     if (bus) {
@@ -1172,15 +1171,17 @@ void pc_machine_done(Notifier *notifier, void *data)
                 extra_hosts++;
             }
         }
-        if (extra_hosts && pcms->fw_cfg) {
+        if (extra_hosts && fw_cfg) {
             uint64_t *val = g_malloc(sizeof(*val));
             *val = cpu_to_le64(extra_hosts);
-            fw_cfg_add_file(pcms->fw_cfg,
-                    "etc/extra-pci-roots", val, sizeof(*val));
+            fw_cfg_add_file(fw_cfg, "etc/extra-pci-roots", val, sizeof(*val));
         }
     }
 
     acpi_setup();
+    if (fw_cfg) {
+        pc_build_smbios(fw_cfg);
+    }
 }
 
 void pc_guest_info_init(PCMachineState *pcms)
