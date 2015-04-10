@@ -25,6 +25,7 @@
 #ifndef HW_IPMI_H
 #define HW_IPMI_H
 
+#include <qemu/queue.h>
 #include "exec/memory.h"
 #include "qemu-common.h"
 #include "hw/qdev.h"
@@ -206,6 +207,41 @@ typedef struct IPMIBmcClass {
 } IPMIBmcClass;
 
 void ipmi_bmc_init(IPMIBmc *s, Error **errp);
+
+/*
+ * Used for transferring information to interfaces that add 
+ * entries to firmware tables.
+ */
+typedef struct IPMIFwInfo {
+    const char *interface_name;
+    int interface_type;
+    uint8_t ipmi_spec_major_revision;
+    uint8_t ipmi_spec_minor_revision;
+    uint8_t i2c_slave_address;
+
+    uint64_t base_address;
+    uint64_t register_length;
+    uint8_t register_spacing;
+    enum {
+        IPMI_MEMSPACE_IO,
+        IPMI_MEMSPACE_MEM32,
+        IPMI_MEMSPACE_MEM64,
+        IPMI_MEMSPACE_SMBUS
+    } memspace;
+
+    int interrupt_number;
+    enum {
+        IPMI_LEVEL_IRQ,
+        IPMI_EDGE_IRQ
+    } irq_type;
+
+    const char *acpi_parent;
+} IPMIFwInfo;
+
+typedef void (*IPMIFwHandler)(IPMIFwInfo *info, void *opaque);
+
+void ipmi_add_fwinfo(IPMIFwInfo *info);
+void ipmi_register_fwinfo_handler(IPMIFwHandler handler, void *opaque);
 
 #ifdef IPMI_DEBUG
 #define ipmi_debug(fs, ...) \
