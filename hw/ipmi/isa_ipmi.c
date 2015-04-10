@@ -41,6 +41,7 @@ typedef struct ISAIPMIDevice {
     uint8_t slave_addr;
     CharDriverState *chr;
     IPMIInterface *intf;
+    IPMIFwInfo fwinfo;
 } ISAIPMIDevice;
 
 static void ipmi_isa_realizefn(DeviceState *dev, Error **errp)
@@ -50,6 +51,7 @@ static void ipmi_isa_realizefn(DeviceState *dev, Error **errp)
     char typename[20];
     Object *intfobj;
     IPMIInterface *intf;
+    IPMIInterfaceClass *intfk;
     Object *bmcobj;
     IPMIBmc *bmc;
 
@@ -68,6 +70,7 @@ static void ipmi_isa_realizefn(DeviceState *dev, Error **errp)
              TYPE_IPMI_INTERFACE_PREFIX "%s", ipmi->interface);
     intfobj = object_new(typename);
     intf = IPMI_INTERFACE(intfobj);
+    intfk = IPMI_INTERFACE_GET_CLASS(intf);
     bmc->intf = intf;
     intf->bmc = bmc;
     intf->io_base = ipmi->iobase;
@@ -103,6 +106,20 @@ static void ipmi_isa_realizefn(DeviceState *dev, Error **errp)
     qdev_set_legacy_instance_id(dev, intf->io_base, intf->io_length);
 
     isa_register_ioport(isadev, &intf->io, intf->io_base);
+
+    ipmi->fwinfo.interface_name = ipmi->interface;
+    ipmi->fwinfo.interface_type = intfk->smbios_type;
+    ipmi->fwinfo.ipmi_spec_major_revision = 2;
+    ipmi->fwinfo.ipmi_spec_minor_revision = 0;
+    ipmi->fwinfo.i2c_slave_address = ipmi->slave_addr;
+    ipmi->fwinfo.base_address = ipmi->iobase;
+    ipmi->fwinfo.register_length = intf->io_length;
+    ipmi->fwinfo.register_spacing = 1;
+    ipmi->fwinfo.memspace = IPMI_MEMSPACE_IO;
+    ipmi->fwinfo.irq_type = IPMI_LEVEL_IRQ;
+    ipmi->fwinfo.interrupt_number = ipmi->isairq;
+    ipmi->fwinfo.acpi_parent = "\\_SB.PCI0.ISA";
+    ipmi_add_fwinfo(&ipmi->fwinfo);
 }
 
 static void ipmi_isa_reset(DeviceState *qdev)
