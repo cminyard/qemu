@@ -123,3 +123,28 @@ static void ipmi_register_types(void)
 }
 
 type_init(ipmi_register_types)
+
+struct fw_entry_handlers {
+    IPMIFwHandler handler;
+    void *opaque;
+    QSLIST_ENTRY(fw_entry_handlers) next;
+};
+static QSLIST_HEAD(, fw_entry_handlers) fw_entries;
+
+void ipmi_add_fwinfo(IPMIFwInfo *info)
+{
+    struct fw_entry_handlers *e;
+
+    QSLIST_FOREACH(e, &fw_entries, next) {
+        e->handler(info, e->opaque);
+    }
+}
+
+void ipmi_register_fwinfo_handler(IPMIFwHandler handler, void *opaque)
+{
+    struct fw_entry_handlers *e = g_malloc(sizeof(*e));
+
+    e->handler = handler;
+    e->opaque = opaque;
+    QSLIST_INSERT_HEAD(&fw_entries, e, next);
+}
