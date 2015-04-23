@@ -51,6 +51,10 @@ typedef struct {
     GArray *tables;
     uint32_t smbios_ep_addr;
     struct smbios_entry_point smbios_ep_table;
+    uint8_t *ssdt_compare;
+    int ssdt_compare_len;
+    uint8_t *required_struct_types;
+    int required_struct_types_len;
 } test_data;
 
 #define LOW(x) ((x) & 0xff)
@@ -104,6 +108,12 @@ typedef struct {
         ACPI_READ_ARRAY((table)->asl_compiler_id, addr);         \
         ACPI_READ_FIELD((table)->asl_compiler_revision, addr);   \
     } while (0);
+
+static bool acpi_cmp32(uint32_t actual, const char *expected)
+{
+    actual = cpu_to_le32(actual);
+    return memcmp(&actual, expected, 4) == 0;
+}
 
 #define ACPI_ASSERT_CMP(actual, expected) do { \
     uint32_t ACPI_ASSERT_CMP_le = cpu_to_le32(actual); \
@@ -376,15 +386,28 @@ static void test_acpi_tables(test_data *data)
 {
     int tables_nr = data->rsdt_tables_nr - 1; /* fadt is first */
     int i;
+    bool match_found = !data->ssdt_compare;
 
     for (i = 0; i < tables_nr; i++) {
         AcpiSdtTable ssdt_table;
 
-        memset(&ssdt_table, 0 , sizeof(ssdt_table));
+        memset(&ssdt_table, 0, sizeof(ssdt_table));
         uint32_t addr = data->rsdt_tables_addr[i + 1]; /* fadt is first */
         test_dst_table(&ssdt_table, addr);
-        g_array_append_val(data->tables, ssdt_table);
+
+        if (data->ssdt_compare &&
+                    acpi_cmp32(ssdt_table.header.signature, "SSDT") &&
+                    data->ssdt_compare_len == ssdt_table.aml_len &&
+                    memcmp(data->ssdt_compare, ssdt_table.aml,
+                           ssdt_table.aml_len) == 0) {
+            match_found = true;
+            g_free(ssdt_table.aml);
+        } else {
+            g_array_append_val(data->tables, ssdt_table);
+        }
     }
+
+    g_assert(match_found);
 }
 
 static void dump_aml_files(test_data *data, bool rebuild)
@@ -685,7 +708,6 @@ static void test_smbios_structs(test_data *data)
     uint32_t addr = ep_table->structure_table_address;
     int i, len, max_len = 0;
     uint8_t type, prv, crt;
-    uint8_t required_struct_types[] = {0, 1, 3, 4, 16, 17, 19, 32, 127};
 
     /* walk the smbios tables */
     for (i = 0; i < ep_table->number_of_structures; i++) {
@@ -725,8 +747,8 @@ static void test_smbios_structs(test_data *data)
     g_assert_cmpuint(ep_table->max_structure_size, ==, max_len);
 
     /* required struct types must all be present */
-    for (i = 0; i < ARRAY_SIZE(required_struct_types); i++) {
-        g_assert(test_bit(required_struct_types[i], struct_bitmap));
+    for (i = 0; i < data->required_struct_types_len; i++) {
+        g_assert(test_bit(data->required_struct_types[i], struct_bitmap));
     }
 }
 
@@ -787,6 +809,9 @@ static void test_acpi_one(const char *params, test_data *data)
     g_free(args);
 }
 
+static uint8_t base_required_struct_types[] =
+    {0, 1, 3, 4, 16, 17, 19, 32, 127};
+
 static void test_acpi_piix4_tcg(void)
 {
     test_data data;
@@ -796,6 +821,8 @@ static void test_acpi_piix4_tcg(void)
      */
     memset(&data, 0, sizeof(data));
     data.machine = MACHINE_PC;
+    data.required_struct_types = base_required_struct_types;
+    data.required_struct_types_len = ARRAY_SIZE(base_required_struct_types);
     test_acpi_one("-machine accel=tcg", &data);
     free_test_data(&data);
 }
@@ -807,6 +834,8 @@ static void test_acpi_piix4_tcg_bridge(void)
     memset(&data, 0, sizeof(data));
     data.machine = MACHINE_PC;
     data.variant = ".bridge";
+    data.required_struct_types = base_required_struct_types;
+    data.required_struct_types_len = ARRAY_SIZE(base_required_struct_types);
     test_acpi_one("-machine accel=tcg -device pci-bridge,chassis_nr=1", &data);
     free_test_data(&data);
 }
@@ -817,6 +846,8 @@ static void test_acpi_q35_tcg(void)
 
     memset(&data, 0, sizeof(data));
     data.machine = MACHINE_Q35;
+    data.required_struct_types = base_required_struct_types;
+    data.required_struct_types_len = ARRAY_SIZE(base_required_struct_types);
     test_acpi_one("-machine q35,accel=tcg", &data);
     free_test_data(&data);
 }
@@ -828,7 +859,78 @@ static void test_acpi_q35_tcg_bridge(void)
     memset(&data, 0, sizeof(data));
     data.machine = MACHINE_Q35;
     data.variant = ".bridge";
+    data.required_struct_types = base_required_struct_types;
+    data.required_struct_types_len = ARRAY_SIZE(base_required_struct_types);
     test_acpi_one("-machine q35,accel=tcg -device pci-bridge,chassis_nr=1",
+                  &data);
+    free_test_data(&data);
+}
+
+static uint8_t ipmi_ssdt_bt_irq5[] = {
+    0x10, 0x42, 0x06, 0x5c, 0x2f, 0x03, 0x5f, 0x53,
+    0x42, 0x5f, 0x50, 0x43, 0x49, 0x30, 0x49, 0x53,
+    0x41, 0x5f, 0x5b, 0x82, 0x4f, 0x04, 0x4d, 0x49,
+    0x30, 0x5f, 0x08, 0x5f, 0x48, 0x49, 0x44, 0x0c,
+    0x26, 0x09, 0x00, 0x01, 0x08, 0x5f, 0x53, 0x54,
+    0x52, 0x0d, 0x69, 0x70, 0x6d, 0x69, 0x5f, 0x62,
+    0x74, 0x00, 0x08, 0x5f, 0x55, 0x49, 0x44, 0x00,
+    0x08, 0x5f, 0x43, 0x52, 0x53, 0x11, 0x10, 0x0a,
+    0x0d, 0x47, 0x01, 0xe4, 0x00, 0xe6, 0x00, 0x01,
+    0x03, 0x22, 0x20, 0x00, 0x79, 0x00, 0x14, 0x09,
+    0x5f, 0x49, 0x46, 0x54, 0x00, 0xa4, 0x0a, 0x03,
+    0x14, 0x0a, 0x5f, 0x53, 0x52, 0x56, 0x00, 0xa4,
+    0x0b, 0x00, 0x02
+};
+
+static uint8_t ipmi_ssdt_kcs_irq0[] = {
+    0x10, 0x4f, 0x05, 0x5c, 0x2f, 0x03, 0x5f, 0x53,
+    0x42, 0x5f, 0x50, 0x43, 0x49, 0x30, 0x49, 0x53,
+    0x41, 0x5f, 0x5b, 0x82, 0x4c, 0x04, 0x4d, 0x49,
+    0x30, 0x5f, 0x08, 0x5f, 0x48, 0x49, 0x44, 0x0c,
+    0x26, 0x09, 0x00, 0x01, 0x08, 0x5f, 0x53, 0x54,
+    0x52, 0x0d, 0x69, 0x70, 0x6d, 0x69, 0x5f, 0x6b,
+    0x63, 0x73, 0x00, 0x08, 0x5f, 0x55, 0x49, 0x44,
+    0x00, 0x08, 0x5f, 0x43, 0x52, 0x53, 0x11, 0x0d,
+    0x0a, 0x0a, 0x47, 0x01, 0xa2, 0x0c, 0xa3, 0x0c,
+    0x01, 0x02, 0x79, 0x00, 0x14, 0x08, 0x5f, 0x49,
+    0x46, 0x54, 0x00, 0xa4, 0x01, 0x14, 0x0a, 0x5f,
+    0x53, 0x52, 0x56, 0x00, 0xa4, 0x0b, 0x00, 0x02
+};
+
+static uint8_t ipmi_required_struct_types[] =
+    {0, 1, 3, 4, 16, 17, 19, 32, 38, 127};
+
+static void test_acpi_q35_tcg_ipmi(void)
+{
+    test_data data;
+
+    memset(&data, 0, sizeof(data));
+    data.machine = MACHINE_Q35;
+    data.ssdt_compare = ipmi_ssdt_bt_irq5;
+    data.ssdt_compare_len = sizeof(ipmi_ssdt_bt_irq5);
+    data.required_struct_types = ipmi_required_struct_types;
+    data.required_struct_types_len = ARRAY_SIZE(ipmi_required_struct_types);
+    test_acpi_one("-machine q35,accel=tcg -device ipmi-bmc-sim,id=bmc0"
+                  " -device isa-ipmi-bt,bmc=bmc0",
+                  &data);
+    free_test_data(&data);
+}
+
+static void test_acpi_piix4_tcg_ipmi(void)
+{
+    test_data data;
+
+    /* Supplying -machine accel argument overrides the default (qtest).
+     * This is to make guest actually run.
+     */
+    memset(&data, 0, sizeof(data));
+    data.machine = MACHINE_PC;
+    data.ssdt_compare = ipmi_ssdt_kcs_irq0;
+    data.ssdt_compare_len = sizeof(ipmi_ssdt_kcs_irq0);
+    data.required_struct_types = ipmi_required_struct_types;
+    data.required_struct_types_len = ARRAY_SIZE(ipmi_required_struct_types);
+    test_acpi_one("-machine accel=tcg -device ipmi-bmc-sim,id=bmc0"
+                  " -device isa-ipmi-kcs,irq=0,bmc=bmc0",
                   &data);
     free_test_data(&data);
 }
@@ -853,6 +955,8 @@ int main(int argc, char *argv[])
         qtest_add_func("acpi/piix4/tcg/bridge", test_acpi_piix4_tcg_bridge);
         qtest_add_func("acpi/q35/tcg", test_acpi_q35_tcg);
         qtest_add_func("acpi/q35/tcg/bridge", test_acpi_q35_tcg_bridge);
+        qtest_add_func("acpi/piix4/tcg/ipmi", test_acpi_piix4_tcg_ipmi);
+        qtest_add_func("acpi/q35/tcg/ipmi", test_acpi_q35_tcg_ipmi);
     }
     ret = g_test_run();
     unlink(disk);
