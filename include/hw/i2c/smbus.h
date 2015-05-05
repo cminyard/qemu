@@ -26,6 +26,7 @@
  */
 
 #include "hw/i2c/i2c.h"
+#include "qemu/queue.h"
 
 #define TYPE_SMBUS_DEVICE "smbus-device"
 #define SMBUS_DEVICE(obj) \
