@@ -24,6 +24,7 @@
 #include "qemu/osdep.h"
 #include "hw/hw.h"
 #include "hw/i2c/smbus.h"
+#include "hw/i2c/smbus_alert.h"
 #include "qapi/error.h"
 #include "qemu/error-report.h"
 #include "hw/ipmi/ipmi.h"
@@ -49,6 +50,8 @@ typedef struct SMBusIPMIDevice {
     uint8_t inmsg[MAX_IPMI_MSG_SIZE];
     uint32_t inlen;
 
+    bool irqs_enabled;
+
     /*
      * This is a response number that we send with the command to make
      * sure that the response matches the command.
@@ -56,11 +59,14 @@ typedef struct SMBusIPMIDevice {
     uint8_t waiting_rsp;
 
     uint32_t uuid;
+
+    SMBusAlertDevice *alertdev;
+    SMBusAlertDeviceClass *alertdevclass;
 } SMBusIPMIDevice;
 
 static void smbus_ipmi_handle_event(IPMIInterface *ii)
 {
-    /* No interrupts, so nothing to do here. */
+    /* Nothing to do here, we don't use events for SMBus. */
 }
 
 static void smbus_ipmi_handle_rsp(IPMIInterface *ii, uint8_t msg_id,
@@ -74,16 +80,29 @@ static void smbus_ipmi_handle_rsp(IPMIInterface *ii, uint8_t msg_id,
         memcpy(sid->outmsg, rsp, rsp_len);
         sid->outlen = rsp_len;
         sid->outpos = 0;
+
+        if (sid->alertdev && sid->irqs_enabled) {
+            sid->alertdevclass->alert(sid->alertdev,
+                                      sid->parent.i2c.address << 1);
+        }
     }
 }
 
 static void smbus_ipmi_set_atn(IPMIInterface *ii, int val, int irq)
 {
-    /* This is where PEC would go. */
+    SMBusIPMIDevice *sid = SMBUS_IPMI(ii);
+
+    if (sid->alertdev && sid->irqs_enabled) {
+        sid->alertdevclass->alert(sid->alertdev,
+                                  sid->parent.i2c.address << 1);
+    }
 }
 
 static void smbus_ipmi_set_irq_enable(IPMIInterface *ii, int val)
 {
+    SMBusIPMIDevice *sid = SMBUS_IPMI(ii);
+
+    sid->irqs_enabled = val;
 }
 
 static void ipmi_quick_cmd(SMBusDevice *dev, uint8_t read)
@@ -150,6 +169,7 @@ static const VMStateDescription vmstate_smbus_ipmi = {
     .fields      = (VMStateField[]) {
         VMSTATE_SMBUS_DEVICE(parent, SMBusIPMIDevice),
         VMSTATE_UINT8(waiting_rsp, SMBusIPMIDevice),
+        VMSTATE_BOOL(irqs_enabled, SMBusIPMIDevice),
         VMSTATE_UINT32(outpos, SMBusIPMIDevice),
         VMSTATE_UINT32(outlen, SMBusIPMIDevice),
         VMSTATE_UINT8_ARRAY(outmsg, SMBusIPMIDevice, MAX_IPMI_MSG_SIZE),
@@ -171,7 +191,17 @@ static void smbus_ipmi_realize(DeviceState *dev, Error **errp)
 
     sid->uuid = ipmi_next_uuid();
 
+    if (sid->alertdev) {
+        sid->alertdevclass = SMBUS_ALERT_DEVICE_GET_CLASS(sid->alertdev);
+    }
+
     sid->bmc->intf = ii;
+}
+
+static void alert_check(const Object *obj, const char *name,
+                        Object *val, Error **errp)
+{
+    /* Always succeed. */
 }
 
 static void smbus_ipmi_init(Object *obj)
@@ -179,6 +209,11 @@ static void smbus_ipmi_init(Object *obj)
     SMBusIPMIDevice *sid = SMBUS_IPMI(obj);
 
     ipmi_bmc_find_and_link(OBJECT(obj), (Object **) &sid->bmc);
+
+    object_property_add_link(obj, "alert", TYPE_SMBUS_ALERT_DEVICE,
+                             (Object **) &sid->alertdev, alert_check,
+                             OBJ_PROP_LINK_UNREF_ON_RELEASE,
+                             &error_abort);
 }
 
 static void smbus_ipmi_get_fwinfo(struct IPMIInterface *ii, IPMIFwInfo *info)
