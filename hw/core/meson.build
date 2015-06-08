@@ -14,6 +14,7 @@ hwcore_files = files(
 )
 
 common_ss.add(files('cpu.c'))
+common_ss.add(files('irqif.c'))
 common_ss.add(when: 'CONFIG_FITLOADER', if_true: files('loader-fit.c'))
 common_ss.add(when: 'CONFIG_GENERIC_LOADER', if_true: files('generic-loader.c'))
 common_ss.add(when: ['CONFIG_GUEST_LOADER', fdt], if_true: files('guest-loader.c'))
