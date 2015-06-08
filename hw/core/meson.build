@@ -10,6 +10,7 @@ hwcore_files = files(
   'vmstate-if.c',
   # irq.c needed for qdev GPIO handling:
   'irq.c',
+  'irqif.c',
   'clock.c',
   'qdev-clock.c',
 )
