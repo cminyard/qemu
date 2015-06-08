@@ -1,4 +1,4 @@
-common-obj-$(CONFIG_ISA_BUS) += isa-bus.o
+common-obj-$(CONFIG_ISA_BUS) += isa-bus.o isa-irq.o
 common-obj-$(CONFIG_ISA_BUS) += isa-superio.o
 common-obj-$(CONFIG_APM) += apm.o
 common-obj-$(CONFIG_I82378) += i82378.o
