@@ -59,7 +59,8 @@ static Aml *aml_ipmi_crs(IPMIFwInfo *info)
                             regspacing, info->register_length));
         break;
     case IPMI_MEMSPACE_SMBUS:
-        aml_append(crs, aml_return(aml_int(info->base_address)));
+        aml_append(crs, aml_i2c_serial_bus_device(0, 100000,
+                                                  info->base_address));
         break;
     default:
         abort();
