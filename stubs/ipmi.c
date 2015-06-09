@@ -9,6 +9,6 @@
 
 #include "hw/acpi/ipmi.h"
 
-void build_acpi_ipmi_devices(Aml *table, BusState *bus)
+void build_acpi_ipmi_devices(Aml *table, BusState *bus, const char *resource)
 {
 }
