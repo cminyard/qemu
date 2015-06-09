@@ -194,6 +194,7 @@ static void smbus_ipmi_realize(DeviceState *dev, Error **errp)
     sid->fwinfo.base_address = sid->parent.i2c.address;
     sid->fwinfo.memspace = IPMI_MEMSPACE_SMBUS;
     sid->fwinfo.register_spacing = 1;
+    sid->fwinfo.acpi_parent = "\\_SB.PCI0.SMB0";
     ipmi_add_fwinfo(&sid->fwinfo, errp);
 }
 
