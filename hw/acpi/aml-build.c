@@ -1215,3 +1215,41 @@ build_rsdt(GArray *table_data, GArray *linker, GArray *table_offsets)
     build_header(linker, table_data,
                  (void *)rsdt, "RSDT", rsdt_len, 1);
 }
+
+static Aml *aml_serial_bus_device(AmlSerialBusType type, uint8_t flags,
+                                  uint16_t type_flags,
+                                  uint8_t revid, uint16_t data_length)
+{
+    Aml *var = aml_alloc();
+    uint16_t length = data_length + 9;
+
+    build_append_byte(var->buf, 0x8e); /* Serial Bus Connection Descriptor */
+    build_append_byte(var->buf, length & 0xff);
+    build_append_byte(var->buf, length >> 8);
+    build_append_byte(var->buf, 1);    /* Revision */
+    build_append_byte(var->buf, 0);    /* Resource source index */
+    build_append_byte(var->buf, type); /* Serial bus type */
+    build_append_byte(var->buf, flags); /* Serial bus type */
+    build_append_byte(var->buf, type_flags & 0xff);
+    build_append_byte(var->buf, type_flags >> 8);
+    build_append_byte(var->buf, revid);
+    build_append_byte(var->buf, data_length & 0xff);
+    build_append_byte(var->buf, data_length >> 8);
+
+    return var;
+}
+
+Aml *aml_i2c_serial_bus_device(uint8_t flags, uint32_t con_speed,
+                               uint16_t address)
+{
+    Aml *var = aml_serial_bus_device(aml_serial_bus_type_i2c, flags, 0, 1, 6);
+
+    build_append_byte(var->buf, con_speed & 0xff);
+    build_append_byte(var->buf, (con_speed >> 8) & 0xff);
+    build_append_byte(var->buf, (con_speed >> 16) & 0xff);
+    build_append_byte(var->buf, (con_speed >> 24) & 0xff);
+    build_append_byte(var->buf, address & 0xff);
+    build_append_byte(var->buf, address >> 8);
+
+    return var;
+}

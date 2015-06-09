@@ -158,6 +158,15 @@ struct AcpiBuildTables {
     GArray *linker;
 } AcpiBuildTables;
 
+typedef enum {
+    aml_serial_bus_type_i2c = 1,
+    aml_serial_bus_type_spi = 2,
+    aml_serial_bus_type_uart = 3
+} AmlSerialBusType;
+
+#define AML_SERIAL_BUS_FLAG_MASTER_DEVICE       (1 << 0)
+#define AML_SERIAL_BUS_FLAG_CONSUME_ONLY        (1 << 1)
+
 /**
  * init_aml_allocator:
  *
@@ -260,6 +269,8 @@ Aml *aml_qword_memory(AmlDecode dec, AmlMinFixed min_fixed,
                       uint64_t addr_gran, uint64_t addr_min,
                       uint64_t addr_max, uint64_t addr_trans,
                       uint64_t len);
+Aml *aml_i2c_serial_bus_device(uint8_t flags, uint32_t con_speed,
+                               uint16_t address);
 
 /* Block AML object primitives */
 Aml *aml_scope(const char *name_format, ...) GCC_FMT_ATTR(1, 2);
