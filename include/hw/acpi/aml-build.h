@@ -2,6 +2,7 @@
 #define HW_ACPI_GEN_UTILS_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <glib.h>
 #include "qemu/compiler.h"
 #include "hw/acpi/acpi-defs.h"
