@@ -52,6 +52,7 @@
 #define   VM_CAPABILITIES_IRQ      0x04
 #define   VM_CAPABILITIES_NMI      0x08
 #define   VM_CAPABILITIES_ATTN     0x10
+#define VM_CMD_FORCEOFF            0x09
 
 #define TYPE_IPMI_BMC_EXTERN "ipmi-bmc-extern"
 #define IPMI_BMC_EXTERN(obj) OBJECT_CHECK(IPMIBmcExtern, (obj), \
@@ -267,6 +268,10 @@ static void handle_hw_op(IPMIBmcExtern *ibe, unsigned char hw_op)
 
     case VM_CMD_SEND_NMI:
         k->do_hw_op(s, IPMI_SEND_NMI, 0);
+        break;
+
+    case VM_CMD_FORCEOFF:
+        exit(0);
         break;
     }
 }
