@@ -229,7 +229,7 @@ static void acpi_table_install(const char unsigned *blob, size_t bloblen,
                                       ACPI_TABLE_PFX_SIZE, acpi_payload_size);
 }
 
-void acpi_table_add(const QemuOpts *opts, Error **errp)
+static void acpi_table_add(const QemuOpts *opts, Error **errp)
 {
     AcpiTableOptions *hdrs = NULL;
     Error *err = NULL;
@@ -309,12 +309,32 @@ out:
     error_propagate(errp, err);
 }
 
+static bool acpi_table_user = false;
+
+void acpi_table_add_user(const QemuOpts *opts, Error **errp)
+{
+    acpi_table_user = true;
+    acpi_table_add(opts, errp);
+}
+
 static bool acpi_table_builtin = false;
 
 void acpi_table_add_builtin(const QemuOpts *opts, Error **errp)
 {
     acpi_table_builtin = true;
     acpi_table_add(opts, errp);
+}
+
+void acpi_table_add_device(const char unsigned *blob, size_t bloblen,
+                           bool has_header,
+                           const struct AcpiTableOptions *hdrs,
+                           Error **errp)
+{
+    if (acpi_table_user) {
+        /* If the user supplied tables, they need to supply everything. */
+        return;
+    }
+    acpi_table_install(blob, bloblen, has_header, hdrs, errp);
 }
 
 unsigned acpi_table_len(void *current)
