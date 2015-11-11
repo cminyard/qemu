@@ -332,10 +332,15 @@ void *acpi_table_hdr(void *h)
 
 uint8_t *acpi_table_first(void)
 {
-    if (acpi_table_builtin || !acpi_tables) {
+    uint8_t *rv;
+
+    if (!acpi_tables) {
         return NULL;
     }
-    return acpi_table_hdr(acpi_tables + ACPI_TABLE_PFX_SIZE);
+    rv = acpi_table_hdr(acpi_tables + ACPI_TABLE_PFX_SIZE);
+    if (acpi_table_builtin)
+        rv = acpi_table_next(rv);
+    return rv;
 }
 
 uint8_t *acpi_table_next(uint8_t *current)
