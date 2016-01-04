@@ -233,7 +233,7 @@ int smbus_quick_command(I2CBus *bus, uint8_t addr, int read)
 
 int smbus_receive_byte(I2CBus *bus, uint8_t addr)
 {
-    uint8_t data;
+    int data;
 
     if (i2c_start_transfer(bus, addr, 1)) {
         return -1;
