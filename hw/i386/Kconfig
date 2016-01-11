@@ -24,6 +24,7 @@ config PC
     imply VGA_PCI
     imply VIRTIO_VGA
     imply SMBUS_PCA9540
+    imply SMBUS_PCA9541
     select FDC
     select I8259
     select I8254

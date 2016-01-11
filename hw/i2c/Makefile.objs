@@ -13,3 +13,4 @@ common-obj-$(CONFIG_MPC_I2C) += mpc_i2c.o
 common-obj-$(CONFIG_OMAP) += omap_i2c.o
 common-obj-$(CONFIG_PPC4XX) += ppc4xx_i2c.o
 common-obj-$(CONFIG_SMBUS_PCA9540) += smbus_pca9540.o
+common-obj-$(CONFIG_SMBUS_PCA9541) += smbus_pca9541.o
