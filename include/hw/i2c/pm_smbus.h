@@ -14,6 +14,7 @@ typedef struct PMSMBus {
     uint8_t smb_data0;
     uint8_t smb_data1;
     uint8_t smb_data[PM_SMBUS_MAX_MSG_SIZE];
+    uint8_t smb_blkdata;
     uint8_t smb_auxctl;
     uint32_t smb_index;
 
@@ -32,7 +33,7 @@ typedef struct PMSMBus {
     bool op_done;
 } PMSMBus;
 
-void pm_smbus_init(DeviceState *parent, PMSMBus *smb);
+void pm_smbus_init(DeviceState *parent, PMSMBus *smb, bool force_aux_blk);
 
 extern const VMStateDescription pmsmb_vmstate;
 
