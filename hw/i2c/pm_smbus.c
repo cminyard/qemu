@@ -132,34 +132,44 @@ static void smb_transaction(PMSMBus *s)
         if (read) {
             ret = smbus_read_block(bus, addr, cmd, s->smb_data,
                                    sizeof(s->smb_data), !i2c_enable);
+            if (ret < 0) {
+                goto error;
+            }
             s->smb_index = 0;
             s->op_done = false;
             if (s->smb_auxctl & AUX_BLK) {
                 s->smb_stat |= STS_INTR;
             } else {
-                s->smb_stat |= STS_HOST_BUSY;
+                s->smb_blkdata = s->smb_data[0];
+                s->smb_stat |= STS_HOST_BUSY | STS_BYTE_DONE;
             }
-            goto datablk;
+            s->smb_data0 = ret;
+            goto out;
         } else {
-            if (s->smb_auxctl & AUX_BLK || s->smb_index == s->smb_data0) {
+            if (s->smb_auxctl & AUX_BLK) {
                 if (s->smb_index != s->smb_data0) {
                     s->smb_index = 0;
                     goto error;
                 }
                 /* Data is already all written to the queue, just do
                    the operation. */
+                s->smb_index = 0;
                 ret = smbus_write_block(bus, addr, cmd, s->smb_data,
                                         s->smb_data0, !i2c_enable);
+                if (ret < 0) {
+                    goto error;
+                }
                 s->op_done = true;
-                s->smb_index = 0;
                 s->smb_stat |= STS_INTR;
                 s->smb_stat &= ~STS_HOST_BUSY;
             } else {
                 s->op_done = false;
-                s->smb_stat |= STS_HOST_BUSY;
+                s->smb_stat |= STS_HOST_BUSY | STS_BYTE_DONE;
+                s->smb_data[0] = s->smb_blkdata;
+                s->smb_index = 0;
                 ret = 0;
             }
-            goto doneblk;
+            goto out;
         }
         break;
     default:
@@ -181,18 +191,8 @@ done:
     if (ret < 0) {
         goto error;
     }
-    s->smb_stat |= STS_BYTE_DONE | STS_INTR;
-    return;
-datablk:
-    if (ret < 0) {
-        goto error;
-    }
-    s->smb_data0 = ret;
-doneblk:
-    if (ret < 0) {
-        goto error;
-    }
-    s->smb_stat |= STS_BYTE_DONE;
+    s->smb_stat |= STS_INTR;
+out:
     return;
 
 error:
@@ -217,12 +217,43 @@ static void smb_ioport_writeb(void *opaque, hwaddr addr, uint64_t val,
     case SMBHSTSTS:
         s->smb_stat &= ~(val & ~STS_HOST_BUSY);
         if (!s->op_done && !(s->smb_auxctl & AUX_BLK)) {
-            s->smb_stat |= STS_BYTE_DONE;
+            uint8_t read = s->smb_addr & 0x01;
+
+            s->smb_index++;
+            if (!read && s->smb_index == s->smb_data0) {
+                uint8_t prot = (s->smb_ctl >> 2) & 0x07;
+                uint8_t cmd = s->smb_cmd;
+                uint8_t addr = s->smb_addr >> 1;
+                int ret;
+
+                ret = smbus_write_block(s->smbus, addr, cmd, s->smb_data,
+                                        s->smb_data0,
+                                        prot != PROT_I2C_BLOCK_DATA);
+                if (ret < 0) {
+                    s->smb_stat |= STS_DEV_ERR;
+                    goto out;
+                }
+                s->op_done = true;
+                s->smb_stat |= STS_INTR;
+                s->smb_stat &= ~STS_HOST_BUSY;
+            } else if (!read) {
+                s->smb_data[s->smb_index] = s->smb_blkdata;
+                s->smb_stat |= STS_BYTE_DONE;
+            } else if (s->smb_ctl & CTL_LAST_BYTE) {
+                s->op_done = true;
+                s->smb_blkdata = s->smb_data[s->smb_index];
+                s->smb_index = 0;
+                s->smb_stat |= STS_INTR;
+                s->smb_stat &= ~STS_HOST_BUSY;
+            } else {
+                s->smb_blkdata = s->smb_data[s->smb_index];
+                s->smb_stat |= STS_BYTE_DONE;
+            }
         }
         break;
     case SMBHSTCNT:
-        s->smb_ctl = val;
-        if (s->smb_ctl & CTL_START) {
+        s->smb_ctl = val & ~CTL_START; /* CTL_START always reads 0 */
+        if (val & CTL_START) {
             if (!s->op_done) {
                 s->smb_index = 0;
                 s->op_done = true;
@@ -252,13 +283,10 @@ static void smb_ioport_writeb(void *opaque, hwaddr addr, uint64_t val,
         if (s->smb_index >= PM_SMBUS_MAX_MSG_SIZE) {
             s->smb_index = 0;
         }
-        s->smb_data[s->smb_index++] = val;
-        if (!(s->smb_auxctl & AUX_BLK) && s->smb_ctl & CTL_START &&
-            !s->op_done && s->smb_index == s->smb_data0) {
-            smb_transaction(s);
-            s->op_done = true;
-            s->smb_stat |= STS_INTR;
-            s->smb_stat &= ~STS_HOST_BUSY;
+        if (s->smb_auxctl & AUX_BLK) {
+            s->smb_data[s->smb_index++] = val;
+        } else {
+            s->smb_blkdata = val;
         }
         break;
     case SMBAUXCTL:
@@ -268,6 +296,7 @@ static void smb_ioport_writeb(void *opaque, hwaddr addr, uint64_t val,
         break;
     }
 
+ out:
     if (s->set_irq) {
         s->set_irq(s, smb_irq_value(s));
     }
@@ -301,18 +330,15 @@ static uint64_t smb_ioport_readb(void *opaque, hwaddr addr, unsigned width)
         if (s->smb_index >= PM_SMBUS_MAX_MSG_SIZE) {
             s->smb_index = 0;
         }
-        val = s->smb_data[s->smb_index++];
-        if (s->smb_ctl & CTL_START && !s->op_done &&
-            s->smb_index == s->smb_data0) {
-            s->op_done = true;
-            s->smb_index = 0;
-            s->smb_stat &= ~STS_HOST_BUSY;
-        }
-        if (s->smb_ctl & CTL_LAST_BYTE) {
-            s->op_done = true;
-            s->smb_index = 0;
-            s->smb_stat |= STS_INTR;
-            s->smb_stat &= ~STS_HOST_BUSY;
+        if (s->smb_auxctl & AUX_BLK) {
+            val = s->smb_data[s->smb_index++];
+            if (!s->op_done && s->smb_index == s->smb_data0) {
+                s->op_done = true;
+                s->smb_index = 0;
+                s->smb_stat &= ~STS_HOST_BUSY;
+            }
+        } else {
+            val = s->smb_blkdata;
         }
         break;
     case SMBAUXCTL:
@@ -366,11 +392,14 @@ const VMStateDescription pmsmb_vmstate = {
     }
 };
 
-void pm_smbus_init(DeviceState *parent, PMSMBus *smb)
+void pm_smbus_init(DeviceState *parent, PMSMBus *smb, bool force_aux_blk)
 {
     smb->op_done = true;
     smb->reset = pm_smbus_reset;
     smb->smbus = i2c_init_bus(parent, "i2c");
+    if (force_aux_blk) {
+        smb->smb_auxctl |= AUX_BLK;
+    }
     memory_region_init_io(&smb->io, OBJECT(parent), &pm_smbus_ops, smb,
                           "pm-smbus", 64);
 }
