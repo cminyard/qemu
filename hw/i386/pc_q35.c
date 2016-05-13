@@ -249,10 +249,10 @@ static void pc_q35_init(MachineState *machine)
     }
 
     /* TODO: Populate SPD eeprom data.  */
-    smbus_eeprom_init(ich9_smb_init(host_bus,
-                                    PCI_DEVFN(ICH9_SMB_DEV, ICH9_SMB_FUNC),
-                                    0xb100),
-                      8, NULL, 0);
+    pcms->smbus = ich9_smb_init(host_bus,
+                                PCI_DEVFN(ICH9_SMB_DEV, ICH9_SMB_FUNC),
+                                0xb100);
+    smbus_eeprom_init(pcms->smbus, 8, NULL, 0);
 
     pc_cmos_init(pcms, idebus[0], idebus[1], rtc_state);
 
@@ -317,6 +317,7 @@ static void pc_q35_2_6_machine_options(MachineClass *m)
     PCMachineClass *pcmc = PC_MACHINE_CLASS(m);
     pc_q35_2_7_machine_options(m);
     pcmc->legacy_cpu_hotplug = true;
+    pcmc->do_not_add_smb_acpi = true;
     SET_MACHINE_COMPAT(m, PC_COMPAT_2_6);
 }
 
