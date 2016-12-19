@@ -38,7 +38,6 @@
 typedef struct SMBusDeviceClass
 {
     I2CSlaveClass parent_class;
-
     /*
      * An operation with no data, special in SMBus.
      * This may be NULL, quick commands are ignore in that case.
@@ -65,6 +64,13 @@ typedef struct SMBusDeviceClass
      * return 0xff in that case.
      */
     uint8_t (*receive_byte)(SMBusDevice *dev);
+
+    /*
+     * Allow the device to handle start and stop events so they can
+     * NAK them.
+     * This may be NULL if the device doesn't need this.
+     */
+    int (*event)(SMBusDevice *dev, enum i2c_event event);
 
     /*
      * Called whan an SMBus transaction has completed.  This can be used
