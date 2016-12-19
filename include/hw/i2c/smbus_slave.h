@@ -43,6 +43,13 @@ struct SMBusDeviceClass {
     void (*quick_cmd)(SMBusDevice *dev, uint8_t read);
 
     /*
+     * Allow the device to handle start and stop events so they can
+     * NAK them.
+     * This may be NULL if the device doesn't need this.
+     */
+    int (*event)(SMBusDevice *dev, enum i2c_event event);
+
+    /*
      * We can't distinguish between a word write and a block write with
      * length 1, so pass the whole data block including the length byte
      * (if present).  The device is responsible figuring out what type of
