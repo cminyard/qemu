@@ -112,7 +112,7 @@ static void smbus_alert_class_init(ObjectClass *oc, void *data)
 
     dc->realize = smbus_alert_realize;
     sc->receive_byte = alert_receive_byte;
-    ic->event_check = smbus_alert_event;
+    ic->event = smbus_alert_event;
     sadc->alert = smbus_alert;
 }
 
