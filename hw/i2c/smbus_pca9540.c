@@ -195,6 +195,7 @@ static int pca9540_master_event(I2CSlave *s, enum i2c_event event)
 {
     I2CSlave *slave = pca9540_get_curr_slave(s);
     I2CSlaveClass *sc;
+    int rv;
 
     DPRINTF("event check=%d\n", event);
 
@@ -203,15 +204,9 @@ static int pca9540_master_event(I2CSlave *s, enum i2c_event event)
     }
 
     sc = I2C_SLAVE_GET_CLASS(slave);
-    if (sc->event_check) {
-        int rv = sc->event_check(slave, event);
-        DPRINTF("event check returns=%d\n", rv);
-        return rv;
-    } else if (sc->event) {
-        sc->event(slave, event);
-    }
-
-    return 0;
+    rv = sc->event(slave, event);
+    DPRINTF("event check returns=%d\n", rv);
+    return rv;
 }
 
 static int pca9540_master_recv(I2CSlave *s)
@@ -253,7 +248,7 @@ static void pca9540_master_class_initfn(ObjectClass *klass, void *data)
     I2CSlaveClass *sc = I2C_SLAVE_CLASS(klass);
 
     sc->init = pca9540_master_device_init;
-    sc->event_check = pca9540_master_event;
+    sc->event = pca9540_master_event;
     sc->recv = pca9540_master_recv;
     sc->send = pca9540_master_send;
 }
