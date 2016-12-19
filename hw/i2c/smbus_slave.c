@@ -64,6 +64,17 @@ static int smbus_i2c_event(I2CSlave *s, enum i2c_event event)
 {
     SMBusDevice *dev = SMBUS_DEVICE(s);
 
+    if (event == I2C_START_SEND || event == I2C_START_RECV) {
+        /* Allow the device to NAK the start event. */
+        SMBusDeviceClass *sc = SMBUS_DEVICE_GET_CLASS(dev);
+
+        if (sc->event) {
+            int rv = sc->event(dev, event);
+            if (rv)
+                return rv;
+        }
+    }
+
     switch (event) {
     case I2C_START_SEND:
         switch (dev->mode) {

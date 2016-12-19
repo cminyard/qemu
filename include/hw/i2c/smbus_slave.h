@@ -35,12 +35,18 @@ OBJECT_DECLARE_TYPE(SMBusDevice, SMBusDeviceClass,
 
 struct SMBusDeviceClass {
     I2CSlaveClass parent_class;
-
     /*
      * An operation with no data, special in SMBus.
      * This may be NULL, quick commands are ignore in that case.
      */
     void (*quick_cmd)(SMBusDevice *dev, uint8_t read);
+
+    /*
+     * Allow the device to handle start and stop events so they can
+     * NAK them.
+     * This may be NULL if the device doesn't need this.
+     */
+    int (*event)(SMBusDevice *dev, enum i2c_event event);
 
     /*
      * We can't distinguish between a word write and a block write with
