@@ -237,7 +237,7 @@ extern const PropertyInfo qdev_prop_off_auto_pcibar;
     {}
 
 /* Set properties between creation and init.  */
-void *qdev_get_prop_ptr(DeviceState *dev, Property *prop);
+void *qdev_get_prop_ptr(DeviceState *dev, const Property *prop);
 void qdev_prop_set_bit(DeviceState *dev, const char *name, bool value);
 void qdev_prop_set_uint8(DeviceState *dev, const char *name, uint8_t value);
 void qdev_prop_set_uint16(DeviceState *dev, const char *name, uint16_t value);
