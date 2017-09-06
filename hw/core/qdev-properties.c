@@ -38,7 +38,7 @@ void qdev_prop_allow_set_link_before_realize(const Object *obj,
     }
 }
 
-void *qdev_get_prop_ptr(DeviceState *dev, Property *prop)
+void *qdev_get_prop_ptr(DeviceState *dev, const Property *prop)
 {
     void *ptr = dev;
     ptr += prop->offset;
