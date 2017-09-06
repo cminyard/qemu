@@ -11,6 +11,8 @@
 #include "chardev/char.h"
 #include "qemu/uuid.h"
 
+#define SET_AFTER_REALIZE
+
 void qdev_prop_set_after_realize(DeviceState *dev, const char *name,
                                   Error **errp)
 {
@@ -62,10 +64,12 @@ static void set_enum(Object *obj, Visitor *v, const char *name, void *opaque,
     Property *prop = opaque;
     int *ptr = qdev_get_prop_ptr(dev, prop);
 
+#ifndef SET_AFTER_REALIZE
     if (dev->realized) {
         qdev_prop_set_after_realize(dev, name, errp);
         return;
     }
+#endif
 
     visit_type_enum(v, prop->name, ptr, prop->info->enum_table, errp);
 }
@@ -116,10 +120,12 @@ static void prop_set_bit(Object *obj, Visitor *v, const char *name,
     Error *local_err = NULL;
     bool value;
 
+#ifndef SET_AFTER_REALIZE
     if (dev->realized) {
         qdev_prop_set_after_realize(dev, name, errp);
         return;
     }
+#endif
 
     visit_type_bool(v, name, &value, &local_err);
     if (local_err) {
@@ -180,10 +186,12 @@ static void prop_set_bit64(Object *obj, Visitor *v, const char *name,
     Error *local_err = NULL;
     bool value;
 
+#ifndef SET_AFTER_REALIZE
     if (dev->realized) {
         qdev_prop_set_after_realize(dev, name, errp);
         return;
     }
+#endif
 
     visit_type_bool(v, name, &value, &local_err);
     if (local_err) {
@@ -220,10 +228,12 @@ static void set_bool(Object *obj, Visitor *v, const char *name, void *opaque,
     Property *prop = opaque;
     bool *ptr = qdev_get_prop_ptr(dev, prop);
 
+#ifndef SET_AFTER_REALIZE
     if (dev->realized) {
         qdev_prop_set_after_realize(dev, name, errp);
         return;
     }
+#endif
 
     visit_type_bool(v, name, ptr, errp);
 }
@@ -254,10 +264,12 @@ static void set_uint8(Object *obj, Visitor *v, const char *name, void *opaque,
     Property *prop = opaque;
     uint8_t *ptr = qdev_get_prop_ptr(dev, prop);
 
+#ifndef SET_AFTER_REALIZE
     if (dev->realized) {
         qdev_prop_set_after_realize(dev, name, errp);
         return;
     }
+#endif
 
     visit_type_uint8(v, name, ptr, errp);
 }
@@ -298,10 +310,12 @@ static void set_uint16(Object *obj, Visitor *v, const char *name,
     Property *prop = opaque;
     uint16_t *ptr = qdev_get_prop_ptr(dev, prop);
 
+#ifndef SET_AFTER_REALIZE
     if (dev->realized) {
         qdev_prop_set_after_realize(dev, name, errp);
         return;
     }
+#endif
 
     visit_type_uint16(v, name, ptr, errp);
 }
@@ -332,10 +346,12 @@ static void set_uint32(Object *obj, Visitor *v, const char *name,
     Property *prop = opaque;
     uint32_t *ptr = qdev_get_prop_ptr(dev, prop);
 
+#ifndef SET_AFTER_REALIZE
     if (dev->realized) {
         qdev_prop_set_after_realize(dev, name, errp);
         return;
     }
+#endif
 
     visit_type_uint32(v, name, ptr, errp);
 }
@@ -357,10 +373,12 @@ static void set_int32(Object *obj, Visitor *v, const char *name, void *opaque,
     Property *prop = opaque;
     int32_t *ptr = qdev_get_prop_ptr(dev, prop);
 
+#ifndef SET_AFTER_REALIZE
     if (dev->realized) {
         qdev_prop_set_after_realize(dev, name, errp);
         return;
     }
+#endif
 
     visit_type_int32(v, name, ptr, errp);
 }
@@ -398,10 +416,12 @@ static void set_uint64(Object *obj, Visitor *v, const char *name,
     Property *prop = opaque;
     uint64_t *ptr = qdev_get_prop_ptr(dev, prop);
 
+#ifndef SET_AFTER_REALIZE
     if (dev->realized) {
         qdev_prop_set_after_realize(dev, name, errp);
         return;
     }
+#endif
 
     visit_type_uint64(v, name, ptr, errp);
 }
@@ -423,10 +443,12 @@ static void set_int64(Object *obj, Visitor *v, const char *name,
     Property *prop = opaque;
     int64_t *ptr = qdev_get_prop_ptr(dev, prop);
 
+#ifndef SET_AFTER_REALIZE
     if (dev->realized) {
         qdev_prop_set_after_realize(dev, name, errp);
         return;
     }
+#endif
 
     visit_type_int64(v, name, ptr, errp);
 }
@@ -477,10 +499,12 @@ static void set_string(Object *obj, Visitor *v, const char *name,
     Error *local_err = NULL;
     char *str;
 
+#ifndef SET_AFTER_REALIZE
     if (dev->realized) {
         qdev_prop_set_after_realize(dev, name, errp);
         return;
     }
+#endif
 
     visit_type_str(v, name, &str, &local_err);
     if (local_err) {
@@ -538,10 +562,12 @@ static void set_mac(Object *obj, Visitor *v, const char *name, void *opaque,
     int i, pos;
     char *str, *p;
 
+#ifndef SET_AFTER_REALIZE
     if (dev->realized) {
         qdev_prop_set_after_realize(dev, name, errp);
         return;
     }
+#endif
 
     visit_type_str(v, name, &str, &local_err);
     if (local_err) {
@@ -660,10 +686,12 @@ static void set_pci_devfn(Object *obj, Visitor *v, const char *name,
     Error *local_err = NULL;
     char *str;
 
+#ifndef SET_AFTER_REALIZE
     if (dev->realized) {
         qdev_prop_set_after_realize(dev, name, errp);
         return;
     }
+#endif
 
     visit_type_str(v, name, &str, &local_err);
     if (local_err) {
@@ -732,10 +760,12 @@ static void set_blocksize(Object *obj, Visitor *v, const char *name,
     const int64_t min = 512;
     const int64_t max = 32768;
 
+#ifndef SET_AFTER_REALIZE
     if (dev->realized) {
         qdev_prop_set_after_realize(dev, name, errp);
         return;
     }
+#endif
 
     visit_type_uint16(v, name, &value, &local_err);
     if (local_err) {
@@ -810,10 +840,12 @@ static void set_pci_host_devaddr(Object *obj, Visitor *v, const char *name,
     unsigned long dom = 0, bus = 0;
     unsigned int slot = 0, func = 0;
 
+#ifndef SET_AFTER_REALIZE
     if (dev->realized) {
         qdev_prop_set_after_realize(dev, name, errp);
         return;
     }
+#endif
 
     visit_type_str(v, name, &str, &local_err);
     if (local_err) {
@@ -988,10 +1020,12 @@ static void set_prop_arraylen(Object *obj, Visitor *v, const char *name,
     const char *arrayname;
     int i;
 
+#ifndef SET_AFTER_REALIZE
     if (dev->realized) {
         qdev_prop_set_after_realize(dev, name, errp);
         return;
     }
+#endif
     if (*alenptr) {
         error_setg(errp, "array size property %s may not be set more than once",
                    name);
