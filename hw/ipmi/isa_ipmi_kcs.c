@@ -83,6 +83,8 @@ typedef struct IPMIKCS {
     bool use_irq;
     bool irqs_enabled;
 
+    bool dummy; /* For receiving bogus value of use_irq from version 1. */
+
     uint8_t outmsg[MAX_IPMI_MSG_SIZE];
     uint32_t outpos;
     uint32_t outlen;
@@ -422,24 +424,54 @@ static void ipmi_isa_realize(DeviceState *dev, Error **errp)
     isa_register_ioport(isadev, &iik->kcs.io, iik->kcs.io_base);
 }
 
-const VMStateDescription vmstate_ISAIPMIKCSDevice = {
-    .name = TYPE_IPMI_INTERFACE,
+static const VMStateDescription vmstate_IPMIKCS = {
+    .name = TYPE_IPMI_INTERFACE_PREFIX "kcs",
     .version_id = 1,
     .minimum_version_id = 1,
     .fields      = (VMStateField[]) {
-        VMSTATE_BOOL(kcs.obf_irq_set, ISAIPMIKCSDevice),
-        VMSTATE_BOOL(kcs.atn_irq_set, ISAIPMIKCSDevice),
-        VMSTATE_BOOL(kcs.use_irq, ISAIPMIKCSDevice),
-        VMSTATE_BOOL(kcs.irqs_enabled, ISAIPMIKCSDevice),
-        VMSTATE_UINT32(kcs.outpos, ISAIPMIKCSDevice),
-        VMSTATE_UINT8_ARRAY(kcs.outmsg, ISAIPMIKCSDevice, MAX_IPMI_MSG_SIZE),
-        VMSTATE_UINT8_ARRAY(kcs.inmsg, ISAIPMIKCSDevice, MAX_IPMI_MSG_SIZE),
-        VMSTATE_BOOL(kcs.write_end, ISAIPMIKCSDevice),
-        VMSTATE_UINT8(kcs.status_reg, ISAIPMIKCSDevice),
-        VMSTATE_UINT8(kcs.data_out_reg, ISAIPMIKCSDevice),
-        VMSTATE_INT16(kcs.data_in_reg, ISAIPMIKCSDevice),
-        VMSTATE_INT16(kcs.cmd_reg, ISAIPMIKCSDevice),
-        VMSTATE_UINT8(kcs.waiting_rsp, ISAIPMIKCSDevice),
+        VMSTATE_BOOL(obf_irq_set, IPMIKCS),
+        VMSTATE_BOOL(atn_irq_set, IPMIKCS),
+        VMSTATE_BOOL(dummy, IPMIKCS), /* Was use_irq */
+        VMSTATE_BOOL(irqs_enabled, IPMIKCS),
+        VMSTATE_UINT32(outpos, IPMIKCS),
+        VMSTATE_UINT32_V(outlen, IPMIKCS, 2),
+        VMSTATE_UINT8_ARRAY(outmsg, IPMIKCS, MAX_IPMI_MSG_SIZE),
+        VMSTATE_UINT32_V(inlen, IPMIKCS, 2),
+        VMSTATE_UINT8_ARRAY(inmsg, IPMIKCS, MAX_IPMI_MSG_SIZE),
+        VMSTATE_BOOL(write_end, IPMIKCS),
+        VMSTATE_UINT8(status_reg, IPMIKCS),
+        VMSTATE_UINT8(data_out_reg, IPMIKCS),
+        VMSTATE_INT16(data_in_reg, IPMIKCS),
+        VMSTATE_INT16(cmd_reg, IPMIKCS),
+        VMSTATE_UINT8(waiting_rsp, IPMIKCS),
+        VMSTATE_END_OF_LIST()
+    }
+};
+
+static int ipmi_kcs_vmstate_post_load(void *opaque, int version)
+{
+    IPMIKCS *ik = opaque;
+
+    /* Make sure all the values are sane. */
+    if (ik->outpos >= MAX_IPMI_MSG_SIZE || ik->outlen >= MAX_IPMI_MSG_SIZE ||
+        ik->outpos >= ik->outlen) {
+        ik->outpos = 0;
+        ik->outlen = 0;
+    }
+
+    if (ik->inlen >= MAX_IPMI_MSG_SIZE)
+        ik->inlen = 0;
+
+    return 0;
+}
+
+static const VMStateDescription vmstate_ISAIPMIKCSDevice = {
+    .name = TYPE_IPMI_INTERFACE_PREFIX "isa-kcs",
+    .version_id = 2,
+    .minimum_version_id = 1,
+    .post_load = ipmi_kcs_vmstate_post_load,
+    .fields      = (VMStateField[]) {
+        VMSTATE_STRUCT(kcs, ISAIPMIKCSDevice, 1, vmstate_IPMIKCS, IPMIKCS),
         VMSTATE_END_OF_LIST()
     }
 };
