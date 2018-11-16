@@ -874,6 +874,19 @@ static void get_device_id(IPMIBmcSim *ibs,
     rsp_buffer_push(rsp, (ibs->product_id >> 8) & 0xff);
 }
 
+static void test_big_response(IPMIBmcSim *ibs,
+                              uint8_t *cmd, unsigned int cmd_len,
+                              RspBuffer *rsp)
+{
+    unsigned int i;
+    unsigned int size;
+
+    size = cmd[2] | (cmd[3] << 8);
+    for (i = 0; i < size; i++) {
+        rsp_buffer_push(rsp, 255 - i);
+    }
+}
+
 static void set_global_enables(IPMIBmcSim *ibs, uint8_t val)
 {
     IPMIInterface *s = ibs->parent.intf;
@@ -1822,6 +1835,7 @@ static const IPMICmdHandler app_cmds[] = {
     [IPMI_CMD_RESET_WATCHDOG_TIMER] = { reset_watchdog_timer },
     [IPMI_CMD_SET_WATCHDOG_TIMER] = { set_watchdog_timer, 8 },
     [IPMI_CMD_GET_WATCHDOG_TIMER] = { get_watchdog_timer },
+    [0x99] = { test_big_response, 4 },
 };
 static const IPMINetfn app_netfn = {
     .cmd_nums = ARRAY_SIZE(app_cmds),
