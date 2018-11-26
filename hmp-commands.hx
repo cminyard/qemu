@@ -1888,6 +1888,20 @@ Set QOM property @var{property} of object at location @var{path} to value @var{v
 ETEXI
 
     {
+        .name       = "qom-print",
+        .args_type  = "path:s,property:s",
+        .params     = "path property",
+        .help       = "print QOM property",
+        .cmd        = hmp_qom_print,
+        .flags      = "p",
+    },
+
+STEXI
+@item qom-print @var{path} @var{property}
+Print QOM property @var{property} of object at location @var{path}
+ETEXI
+
+    {
         .name       = "info",
         .args_type  = "item:s?",
         .params     = "[subcommand]",
