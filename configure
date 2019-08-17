@@ -3698,6 +3698,7 @@ fi
 if test "$libssh" = "yes"; then
   cat > $TMPC <<EOF
 #include <libssh/libssh.h>
+enum ssh_known_hosts_e state;
 int main(void) { return ssh_get_server_publickey(NULL, NULL); }
 EOF
   if compile_prog "$libssh_cflags" "$libssh_libs"; then
