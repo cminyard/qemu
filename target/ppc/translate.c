@@ -3236,9 +3236,7 @@ static void glue(gen_qemu_, stop)(DisasContext *ctx,                    \
     tcg_gen_qemu_st_tl(val, addr, ctx->mem_idx, op);                    \
 }
 
-#if defined(TARGET_PPC64) || !defined(CONFIG_USER_ONLY)
 GEN_QEMU_STORE_TL(st8,  DEF_MEMOP(MO_UB))
-#endif
 GEN_QEMU_STORE_TL(st16, DEF_MEMOP(MO_UW))
 GEN_QEMU_STORE_TL(st32, DEF_MEMOP(MO_UL))
 
@@ -3302,6 +3300,8 @@ GEN_LDEPX(ld, DEF_MEMOP(MO_UQ), 0x1D, 0x00)
 #if defined(TARGET_PPC64)
 /* CI load/store variants */
 GEN_LDX_HVRM(ldcix, ld64_i64, 0x15, 0x1b, PPC_CILDST)
+#endif
+#if defined(TARGET_PPC64) || defined(CONFIG_USER_ONLY)
 GEN_LDX_HVRM(lwzcix, ld32u, 0x15, 0x15, PPC_CILDST)
 GEN_LDX_HVRM(lhzcix, ld16u, 0x15, 0x19, PPC_CILDST)
 GEN_LDX_HVRM(lbzcix, ld8u, 0x15, 0x1a, PPC_CILDST)
@@ -3347,6 +3347,8 @@ GEN_STEPX(std, DEF_MEMOP(MO_UQ), 0x1d, 0x04)
 
 #if defined(TARGET_PPC64)
 GEN_STX_HVRM(stdcix, st64_i64, 0x15, 0x1f, PPC_CILDST)
+#endif
+#if defined(TARGET_PPC64) || defined(CONFIG_USER_ONLY)
 GEN_STX_HVRM(stwcix, st32, 0x15, 0x1c, PPC_CILDST)
 GEN_STX_HVRM(sthcix, st16, 0x15, 0x1d, PPC_CILDST)
 GEN_STX_HVRM(stbcix, st8, 0x15, 0x1e, PPC_CILDST)
@@ -7132,6 +7134,8 @@ GEN_LDX_E(ldbr, ld64ur_i64, 0x14, 0x10, PPC_NONE, PPC2_DBRX, CHK_NONE)
 
 /* HV/P7 and later only */
 GEN_LDX_HVRM(ldcix, ld64_i64, 0x15, 0x1b, PPC_CILDST)
+#endif
+#if defined(TARGET_PPC64) || defined(CONFIG_USER_ONLY)
 GEN_LDX_HVRM(lwzcix, ld32u, 0x15, 0x18, PPC_CILDST)
 GEN_LDX_HVRM(lhzcix, ld16u, 0x15, 0x19, PPC_CILDST)
 GEN_LDX_HVRM(lbzcix, ld8u, 0x15, 0x1a, PPC_CILDST)
@@ -7159,6 +7163,8 @@ GEN_HANDLER_E(name##x, 0x1F, opc2, opc3, 0x00000000, type, type2),
 #if defined(TARGET_PPC64)
 GEN_STX_E(stdbr, st64r_i64, 0x14, 0x14, PPC_NONE, PPC2_DBRX, CHK_NONE)
 GEN_STX_HVRM(stdcix, st64_i64, 0x15, 0x1f, PPC_CILDST)
+#endif
+#if defined(TARGET_PPC64) || defined(CONFIG_USER_ONLY)
 GEN_STX_HVRM(stwcix, st32, 0x15, 0x1c, PPC_CILDST)
 GEN_STX_HVRM(sthcix, st16, 0x15, 0x1d, PPC_CILDST)
 GEN_STX_HVRM(stbcix, st8, 0x15, 0x1e, PPC_CILDST)
