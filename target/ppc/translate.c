@@ -2530,10 +2530,12 @@ static void gen_bpermd(DisasContext *ctx)
 }
 #endif
 
-#if defined(TARGET_PPC64)
+#if defined(TARGET_PPC64) || defined(CONFIG_USER_ONLY)
 /* extsw & extsw. */
 GEN_LOGICAL1(extsw, tcg_gen_ext32s_tl, 0x1E, PPC_64B);
+#endif
 
+#if defined(TARGET_PPC64)
 /* cntlzd */
 static void gen_cntlzd(DisasContext *ctx)
 {
@@ -3057,6 +3059,28 @@ static void gen_sradi1(DisasContext *ctx)
     gen_sradi(ctx, 1);
 }
 
+/* srd & srd. */
+static void gen_srd(DisasContext *ctx)
+{
+    TCGv t0, t1;
+
+    t0 = tcg_temp_new();
+    /* AND rS with a mask that is 0 when rB >= 0x40 */
+    tcg_gen_shli_tl(t0, cpu_gpr[rB(ctx->opcode)], 0x39);
+    tcg_gen_sari_tl(t0, t0, 0x3f);
+    tcg_gen_andc_tl(t0, cpu_gpr[rS(ctx->opcode)], t0);
+    t1 = tcg_temp_new();
+    tcg_gen_andi_tl(t1, cpu_gpr[rB(ctx->opcode)], 0x3f);
+    tcg_gen_shr_tl(cpu_gpr[rA(ctx->opcode)], t0, t1);
+    tcg_temp_free(t1);
+    tcg_temp_free(t0);
+    if (unlikely(Rc(ctx->opcode) != 0)) {
+        gen_set_Rc0(ctx, cpu_gpr[rA(ctx->opcode)]);
+    }
+}
+#endif
+
+#if defined(TARGET_PPC64) || defined(CONFIG_USER_ONLY)
 /* extswsli & extswsli. */
 static inline void gen_extswsli(DisasContext *ctx, int n)
 {
@@ -3079,26 +3103,6 @@ static void gen_extswsli0(DisasContext *ctx)
 static void gen_extswsli1(DisasContext *ctx)
 {
     gen_extswsli(ctx, 1);
-}
-
-/* srd & srd. */
-static void gen_srd(DisasContext *ctx)
-{
-    TCGv t0, t1;
-
-    t0 = tcg_temp_new();
-    /* AND rS with a mask that is 0 when rB >= 0x40 */
-    tcg_gen_shli_tl(t0, cpu_gpr[rB(ctx->opcode)], 0x39);
-    tcg_gen_sari_tl(t0, t0, 0x3f);
-    tcg_gen_andc_tl(t0, cpu_gpr[rS(ctx->opcode)], t0);
-    t1 = tcg_temp_new();
-    tcg_gen_andi_tl(t1, cpu_gpr[rB(ctx->opcode)], 0x3f);
-    tcg_gen_shr_tl(cpu_gpr[rA(ctx->opcode)], t0, t1);
-    tcg_temp_free(t1);
-    tcg_temp_free(t0);
-    if (unlikely(Rc(ctx->opcode) != 0)) {
-        gen_set_Rc0(ctx, cpu_gpr[rA(ctx->opcode)]);
-    }
 }
 #endif
 
@@ -6801,6 +6805,8 @@ GEN_HANDLER(srad, 0x1F, 0x1A, 0x18, 0x00000000, PPC_64B),
 GEN_HANDLER2(sradi0, "sradi", 0x1F, 0x1A, 0x19, 0x00000000, PPC_64B),
 GEN_HANDLER2(sradi1, "sradi", 0x1F, 0x1B, 0x19, 0x00000000, PPC_64B),
 GEN_HANDLER(srd, 0x1F, 0x1B, 0x10, 0x00000000, PPC_64B),
+#endif
+#if defined(TARGET_PPC64) || defined(CONFIG_USER_ONLY)
 GEN_HANDLER2_E(extswsli0, "extswsli", 0x1F, 0x1A, 0x1B, 0x00000000,
                PPC_NONE, PPC2_ISA300),
 GEN_HANDLER2_E(extswsli1, "extswsli", 0x1F, 0x1B, 0x1B, 0x00000000,
@@ -7090,7 +7096,7 @@ GEN_LOGICAL1(extsh, tcg_gen_ext16s_tl, 0x1C, PPC_INTEGER),
 GEN_LOGICAL2(nand, tcg_gen_nand_tl, 0x0E, PPC_INTEGER),
 GEN_LOGICAL2(nor, tcg_gen_nor_tl, 0x03, PPC_INTEGER),
 GEN_LOGICAL2(orc, tcg_gen_orc_tl, 0x0C, PPC_INTEGER),
-#if defined(TARGET_PPC64)
+#if defined(TARGET_PPC64) || defined(CONFIG_USER_ONLY)
 GEN_LOGICAL1(extsw, tcg_gen_ext32s_tl, 0x1E, PPC_64B),
 #endif
 
