@@ -166,7 +166,29 @@ uint32_t helper_cmpeqb(target_ulong ra, target_ulong rb)
 #undef pattern
 #undef haszero
 #undef hasvalue
+#endif
 
+#if !defined(TARGET_PPC64) && defined(CONFIG_USER_ONLY)
+/*
+ * Return a random number.
+ */
+uint32_t helper_darn32(void)
+{
+    Error *err = NULL;
+    uint32_t ret;
+
+    if (qemu_guest_getrandom(&ret, sizeof(ret), &err) < 0) {
+        qemu_log_mask(LOG_UNIMP, "darn: Crypto failure: %s",
+                      error_get_pretty(err));
+        error_free(err);
+        return -1;
+    }
+
+    return ret;
+}
+#endif
+
+#if defined(TARGET_PPC64)
 /*
  * Return a random number.
  */
@@ -199,7 +221,6 @@ uint64_t helper_darn64(void)
 
     return ret;
 }
-
 uint64_t helper_bpermd(uint64_t rs, uint64_t rb)
 {
     int i;
@@ -215,7 +236,6 @@ uint64_t helper_bpermd(uint64_t rs, uint64_t rb)
     }
     return ra;
 }
-
 #endif
 
 target_ulong helper_cmpb(target_ulong rs, target_ulong rb)

@@ -162,7 +162,7 @@ EXTRACT_HELPER(RM, 11, 2);
 
 /* addpcis */
 EXTRACT_HELPER_SPLIT_3(DX, 10, 6, 6, 5, 16, 1, 1, 0, 0)
-#if defined(TARGET_PPC64)
+#if defined(TARGET_PPC64) || defined(CONFIG_USER_ONLY)
 /* darn */
 EXTRACT_HELPER(L, 16, 2);
 #endif

@@ -2551,21 +2551,31 @@ static void gen_cnttzd(DisasContext *ctx)
         gen_set_Rc0(ctx, cpu_gpr[rA(ctx->opcode)]);
     }
 }
+#endif
 
+#if defined(TARGET_PPC64) || defined(CONFIG_USER_ONLY)
 /* darn */
 static void gen_darn(DisasContext *ctx)
 {
     int l = L(ctx->opcode);
 
     if (l > 2) {
+#if defined(TARGET_PPC64)
         tcg_gen_movi_i64(cpu_gpr[rD(ctx->opcode)], -1);
+#else
+        gen_invalid(ctx);
+#endif
     } else {
         gen_icount_io_start(ctx);
         if (l == 0) {
             gen_helper_darn32(cpu_gpr[rD(ctx->opcode)]);
         } else {
+#if defined(TARGET_PPC64)
             /* Return 64-bit random for both CRN and RRN */
             gen_helper_darn64(cpu_gpr[rD(ctx->opcode)]);
+#else
+            gen_invalid(ctx);
+#endif
         }
     }
 }
@@ -6770,7 +6780,11 @@ GEN_HANDLER_E(prtyw, 0x1F, 0x1A, 0x04, 0x0000F801, PPC_NONE, PPC2_ISA205),
 GEN_HANDLER(popcntd, 0x1F, 0x1A, 0x0F, 0x0000F801, PPC_POPCNTWD),
 GEN_HANDLER(cntlzd, 0x1F, 0x1A, 0x01, 0x00000000, PPC_64B),
 GEN_HANDLER_E(cnttzd, 0x1F, 0x1A, 0x11, 0x00000000, PPC_NONE, PPC2_ISA300),
+#endif
+#if defined(TARGET_PPC64) || defined(CONFIG_USER_ONLY)
 GEN_HANDLER_E(darn, 0x1F, 0x13, 0x17, 0x001CF801, PPC_NONE, PPC2_ISA300),
+#endif
+#if defined(TARGET_PPC64)
 GEN_HANDLER_E(prtyd, 0x1F, 0x1A, 0x05, 0x0000F801, PPC_NONE, PPC2_ISA205),
 GEN_HANDLER_E(bpermd, 0x1F, 0x1C, 0x07, 0x00000001, PPC_NONE, PPC2_PERM_ISA206),
 #endif
