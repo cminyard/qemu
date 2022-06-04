@@ -5481,7 +5481,7 @@ static void gen_tlbsync(DisasContext *ctx)
 #endif /* defined(CONFIG_USER_ONLY) */
 }
 
-#if defined(TARGET_PPC64)
+#if defined(TARGET_PPC64) || defined(CONFIG_USER_ONLY)
 /* slbia */
 static void gen_slbia(DisasContext *ctx)
 {
@@ -6925,7 +6925,7 @@ GEN_HANDLER(tlbie, 0x1F, 0x12, 0x09, 0x001F0001, PPC_MEM_TLBIE),
 GEN_HANDLER_E(tlbiel, 0x1F, 0x12, 0x08, 0x00100001, PPC_NONE, PPC2_ISA300),
 GEN_HANDLER_E(tlbie, 0x1F, 0x12, 0x09, 0x00100001, PPC_NONE, PPC2_ISA300),
 GEN_HANDLER(tlbsync, 0x1F, 0x16, 0x11, 0x03FFF801, PPC_MEM_TLBSYNC),
-#if defined(TARGET_PPC64)
+#if defined(TARGET_PPC64) || defined(CONFIG_USER_ONLY)
 GEN_HANDLER(slbia, 0x1F, 0x12, 0x0F, 0x031FFC01, PPC_SLBI),
 GEN_HANDLER(slbie, 0x1F, 0x12, 0x0D, 0x03FF0001, PPC_SLBI),
 GEN_HANDLER_E(slbieg, 0x1F, 0x12, 0x0E, 0x001F0001, PPC_NONE, PPC2_ISA300),
