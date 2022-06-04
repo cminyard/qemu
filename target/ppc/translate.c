@@ -4652,7 +4652,7 @@ static void gen_mcrxr(DisasContext *ctx)
     tcg_gen_movi_tl(cpu_ca, 0);
 }
 
-#ifdef TARGET_PPC64
+#if defined(TARGET_PPC64) || defined(CONFIG_USER_ONLY)
 /* mcrxrx */
 static void gen_mcrxrx(DisasContext *ctx)
 {
@@ -6877,6 +6877,8 @@ GEN_HANDLER(mtcrf, 0x1F, 0x10, 0x04, 0x00000801, PPC_MISC),
 #if defined(TARGET_PPC64)
 GEN_HANDLER(mtmsrd, 0x1F, 0x12, 0x05, 0x001EF801, PPC_64B),
 GEN_HANDLER_E(setb, 0x1F, 0x00, 0x04, 0x0003F801, PPC_NONE, PPC2_ISA300),
+#endif
+#if defined(TARGET_PPC64) || defined(CONFIG_USER_ONLY)
 GEN_HANDLER_E(mcrxrx, 0x1F, 0x00, 0x12, 0x007FF801, PPC_NONE, PPC2_ISA300),
 #endif
 GEN_HANDLER(mtmsr, 0x1F, 0x12, 0x04, 0x001EF801, PPC_MISC),
