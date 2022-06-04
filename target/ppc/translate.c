@@ -7665,7 +7665,8 @@ static void ppc_tr_translate_insn(DisasContextBase *dcbase, CPUState *cs)
 
     LOG_DISAS("----------------\n");
     LOG_DISAS("nip=" TARGET_FMT_lx " super=%d ir=%d\n",
-              ctx->base.pc_next, ctx->mem_idx, (int)msr_ir);
+              ctx->base.pc_next, ctx->mem_idx,
+              (int) ((env->msr >> MSR_IR) & 1));
 
     ctx->cia = pc = ctx->base.pc_next;
     insn = translator_ldl_swap(env, dcbase, pc, need_byteswap(ctx));
