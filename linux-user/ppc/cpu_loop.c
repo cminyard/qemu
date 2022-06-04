@@ -383,7 +383,7 @@ void target_cpu_copy_regs(CPUArchState *env, struct target_pt_regs *regs)
 {
     int i;
 
-#if defined(TARGET_PPC64)
+#if defined(TARGET_PPC64) || defined(CONFIG_USER_ONLY)
     int flag = (env->insns_flags2 & PPC2_BOOKE206) ? MSR_CM : MSR_SF;
 #if defined(TARGET_ABI32)
     ppc_store_msr(env, env->msr & ~((target_ulong)1 << flag));

@@ -326,7 +326,7 @@ enum {
     CPU_POWERPC_74x7A_v11          = 0x80030101, /* aka B: 1.1 */
     CPU_POWERPC_74x7A_v12          = 0x80030102, /* aka C: 1.2 */
     /* 64 bits PowerPC */
-#if defined(TARGET_PPC64)
+#if defined(TARGET_PPC64) || defined(CONFIG_USER_ONLY)
     CPU_POWERPC_620                = 0x00140000,
     CPU_POWERPC_630                = 0x00400000,
     CPU_POWERPC_631                = 0x00410104,

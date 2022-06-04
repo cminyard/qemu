@@ -1108,7 +1108,7 @@ void spr_read_mas73(DisasContext *ctx, int gprn, int sprn)
 
 #endif
 
-#ifdef TARGET_PPC64
+#if defined(TARGET_PPC64) || defined(CONFIG_USER_ONLY)
 static void gen_fscr_facility_check(DisasContext *ctx, int facility_sprn,
                                     int bit, int sprn, int cause)
 {

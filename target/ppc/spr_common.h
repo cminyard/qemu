@@ -180,7 +180,7 @@ void spr_write_iamr(DisasContext *ctx, int sprn, int gprn);
 #endif
 #endif
 
-#ifdef TARGET_PPC64
+#if defined(TARGET_PPC64) || defined(CONFIG_USER_ONLY)
 void spr_read_prev_upper32(DisasContext *ctx, int gprn, int sprn);
 void spr_write_prev_upper32(DisasContext *ctx, int sprn, int gprn);
 void spr_read_tar(DisasContext *ctx, int gprn, int sprn);

@@ -214,7 +214,7 @@ static void register_7xx_sprs(CPUPPCState *env)
                  0x00000000);
 }
 
-#ifdef TARGET_PPC64
+#if defined(TARGET_PPC64) || defined(CONFIG_USER_ONLY)
 static void register_amr_sprs(CPUPPCState *env)
 {
 #ifndef CONFIG_USER_ONLY
@@ -1993,7 +1993,7 @@ static void init_excp_7450(CPUPPCState *env)
 #endif
 }
 
-#if defined(TARGET_PPC64)
+#if defined(TARGET_PPC64) || defined(CONFIG_USER_ONLY)
 static void init_excp_970(CPUPPCState *env)
 {
 #if !defined(CONFIG_USER_ONLY)
@@ -5022,7 +5022,7 @@ POWERPC_FAMILY(e600)(ObjectClass *oc, void *data)
                  POWERPC_FLAG_BUS_CLK;
 }
 
-#if defined(TARGET_PPC64)
+#if defined(TARGET_PPC64) || defined(CONFIG_USER_ONLY)
 #if defined(CONFIG_USER_ONLY)
 #define POWERPC970_HID5_INIT 0x00000080
 #else
