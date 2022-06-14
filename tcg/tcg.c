@@ -66,6 +66,8 @@
 #include <ffi.h>
 #endif
 
+key_t tcg_key = IPC_PRIVATE;
+
 /* Forward declarations for functions declared in tcg-target.c.inc and
    used here. */
 static void tcg_target_init(TCGContext *s);
@@ -466,6 +468,9 @@ void tcg_register_thread(void)
     unsigned int i, n;
 
     *s = tcg_init_ctx;
+#ifdef CONFIG_PROFILER
+    s->prof = g_malloc(sizeof(TCGProfile));
+#endif
 
     /* Relink mem_base.  */
     for (i = 0, n = tcg_init_ctx.nb_globals; i < n; ++i) {
@@ -568,6 +573,47 @@ static void process_op_defs(TCGContext *s);
 static TCGTemp *tcg_global_reg_new_internal(TCGContext *s, TCGType type,
                                             TCGReg reg, const char *name);
 
+#ifdef CONFIG_PROFILER
+static void *attach_shm_region(key_t key, size_t size)
+{
+    int rv, id;
+    void *s;
+
+ retry:
+    id = shmget(key, size, IPC_CREAT | IPC_EXCL | 0600);
+    if (id == -1) {
+        if (errno == EEXIST) {
+            id = shmget(key, 1, 0);
+            if (id == -1) {
+                fprintf(stderr, "shm key %d already exists, unable"
+                        "to get the key to delete it: %s\n",
+                        key, strerror(errno));
+                exit(1);
+            }
+            rv = shmctl(id, IPC_RMID, NULL);
+            if (rv == -1) {
+                fprintf(stderr, "shm key %d already exists, unable"
+                        "to delete it: %s\n", key, strerror(errno));
+                exit(1);
+            }
+            goto retry;
+        } else {
+            fprintf(stderr, "shm key %d shm create error: %s\n",
+                    key, strerror(errno));
+            exit(1);
+        }
+    }
+    s = shmat(id, NULL, 0);
+    if (s == ((void *) -1)) {
+        fprintf(stderr, "shm key %d shm attach error: %s\n",
+                key, strerror(errno));
+        shmctl(id, IPC_RMID, NULL);
+        exit(1);
+    }
+    return s;
+}
+#endif
+
 static void tcg_context_init(unsigned max_cpus)
 {
     TCGContext *s = &tcg_init_ctx;
@@ -577,6 +623,14 @@ static void tcg_context_init(unsigned max_cpus)
     TCGTemp *ts;
 
     memset(s, 0, sizeof(*s));
+#ifdef CONFIG_PROFILER
+    if (tcg_key != IPC_PRIVATE) {
+        s->prof = attach_shm_region(tcg_key, sizeof(TCGProfile));
+    } else {
+        s->prof = g_malloc(sizeof(TCGProfile));
+    }
+    s->prof->num_ops = NB_OPS;
+#endif
     s->nb_globals = 0;
 
     /* Count total number of arguments and allocate the corresponding
@@ -2195,7 +2249,7 @@ void tcg_op_remove(TCGContext *s, TCGOp *op)
     s->nb_ops--;
 
 #ifdef CONFIG_PROFILER
-    qatomic_set(&s->prof.del_op_count, s->prof.del_op_count + 1);
+    qatomic_set(&s->prof->del_op_count, s->prof->del_op_count + 1);
 #endif
 }
 
@@ -4085,7 +4139,7 @@ void tcg_profile_snapshot(TCGProfile *prof, bool counters, bool table)
 
     for (i = 0; i < n_ctxs; i++) {
         TCGContext *s = qatomic_read(&tcg_ctxs[i]);
-        const TCGProfile *orig = &s->prof;
+        const TCGProfile *orig = s->prof;
 
         if (counters) {
             PROF_ADD(prof, orig, cpu_exec_time);
@@ -4149,7 +4203,7 @@ int64_t tcg_cpu_exec_time(void)
 
     for (i = 0; i < n_ctxs; i++) {
         const TCGContext *s = qatomic_read(&tcg_ctxs[i]);
-        const TCGProfile *prof = &s->prof;
+        const TCGProfile *prof = s->prof;
 
         ret += qatomic_read(&prof->cpu_exec_time);
     }
@@ -4172,7 +4226,7 @@ int64_t tcg_cpu_exec_time(void)
 int tcg_gen_code(TCGContext *s, TranslationBlock *tb)
 {
 #ifdef CONFIG_PROFILER
-    TCGProfile *prof = &s->prof;
+    TCGProfile *prof = s->prof;
 #endif
     int i, num_insns;
     TCGOp *op;

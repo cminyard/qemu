@@ -25,6 +25,8 @@
 #ifndef TCG_H
 #define TCG_H
 
+#include <sys/ipc.h>
+#include <sys/shm.h>
 #include "cpu.h"
 #include "exec/memop.h"
 #include "exec/memopidx.h"
@@ -34,6 +36,8 @@
 #include "tcg/tcg-mo.h"
 #include "tcg-target.h"
 #include "tcg/tcg-cond.h"
+
+extern key_t tcg_key;
 
 /* XXX: make safe guess about sizes */
 #define MAX_OP_PER_INSTR 266
@@ -512,26 +516,7 @@ typedef struct TCGOp {
 /* Make sure operands fit in the bitfields above.  */
 QEMU_BUILD_BUG_ON(NB_OPS > (1 << 8));
 
-typedef struct TCGProfile {
-    int64_t cpu_exec_time;
-    int64_t tb_count1;
-    int64_t tb_count;
-    int64_t op_count; /* total insn count */
-    int op_count_max; /* max insn per TB */
-    int temp_count_max;
-    int64_t temp_count;
-    int64_t del_op_count;
-    int64_t code_in_len;
-    int64_t code_out_len;
-    int64_t search_out_len;
-    int64_t interm_time;
-    int64_t code_time;
-    int64_t la_time;
-    int64_t opt_time;
-    int64_t restore_count;
-    int64_t restore_time;
-    int64_t table_op_count[NB_OPS];
-} TCGProfile;
+#include "tcg/profile.h"
 
 struct TCGContext {
     uint8_t *pool_cur, *pool_end;
@@ -558,7 +543,7 @@ struct TCGContext {
     tcg_insn_unit *code_ptr;
 
 #ifdef CONFIG_PROFILER
-    TCGProfile prof;
+    TCGProfile *prof;
 #endif
 
 #ifdef CONFIG_DEBUG_TCG

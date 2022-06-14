@@ -406,6 +406,11 @@ static void handle_arg_trace(const char *arg)
     trace_opt_parse(arg);
 }
 
+static void handle_arg_tcgkey(const char *arg)
+{
+    tcg_key = strtoul(arg, NULL, 0);
+}
+
 #if defined(TARGET_XTENSA)
 static void handle_arg_abi_call0(const char *arg)
 {
@@ -473,6 +478,8 @@ static const struct qemu_argument arg_table[] = {
      "",           "Seed for pseudo-random number generator"},
     {"trace",      "QEMU_TRACE",       true,  handle_arg_trace,
      "",           "[[enable=]<pattern>][,events=<file>][,file=<file>]"},
+    {"tcgkey",     "QEMU_TCGKEY",      true,  handle_arg_tcgkey,
+     "",           "An integer with the sysvipc shm key holding the tcg"},
 #ifdef CONFIG_PLUGIN
     {"plugin",     "QEMU_PLUGIN",      true,  handle_arg_plugin,
      "",           "[file=]<file>[,<argname>=<argvalue>]"},

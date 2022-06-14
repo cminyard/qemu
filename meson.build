@@ -3358,6 +3358,8 @@ if have_tools
   qemu_nbd = executable('qemu-nbd', files('qemu-nbd.c'),
                dependencies: [blockdev, qemuutil, gnutls, selinux],
                install: true)
+  qemu_tcg = executable('qemu-tcg', files('qemu-tcg.c'),
+               dependencies: [qemuutil], install: true)
 
   subdir('storage-daemon')
   subdir('contrib/rdmacm-mux')

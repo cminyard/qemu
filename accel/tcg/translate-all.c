@@ -339,7 +339,7 @@ static int cpu_restore_state_from_tb(CPUState *cpu, TranslationBlock *tb,
     const uint8_t *p = tb->tc.ptr + tb->tc.size;
     int i, j, num_insns = tb->icount;
 #ifdef CONFIG_PROFILER
-    TCGProfile *prof = &tcg_ctx->prof;
+    TCGProfile *prof = tcg_ctx->prof;
     int64_t ti = profile_getclock();
 #endif
 
@@ -1390,7 +1390,7 @@ TranslationBlock *tb_gen_code(CPUState *cpu,
     tcg_insn_unit *gen_code_buf;
     int gen_code_size, search_size, max_insns;
 #ifdef CONFIG_PROFILER
-    TCGProfile *prof = &tcg_ctx->prof;
+    TCGProfile *prof = tcg_ctx->prof;
     int64_t ti;
 #endif
 
