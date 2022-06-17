@@ -470,6 +470,8 @@ void tcg_register_thread(void)
     *s = tcg_init_ctx;
 #ifdef CONFIG_PROFILER
     s->prof = g_malloc(sizeof(TCGProfile));
+    memset(s->prof, 0, sizeof(TCGProfile));
+    s->prof->num_ops = NB_OPS;
 #endif
 
     /* Relink mem_base.  */
@@ -629,6 +631,7 @@ static void tcg_context_init(unsigned max_cpus)
     } else {
         s->prof = g_malloc(sizeof(TCGProfile));
     }
+    memset(s->prof, 0, sizeof(TCGProfile));
     s->prof->num_ops = NB_OPS;
 #endif
     s->nb_globals = 0;
@@ -4227,6 +4230,7 @@ int tcg_gen_code(TCGContext *s, TranslationBlock *tb)
 {
 #ifdef CONFIG_PROFILER
     TCGProfile *prof = s->prof;
+    int64_t end_time, start_time;
 #endif
     int i, num_insns;
     TCGOp *op;
@@ -4280,7 +4284,7 @@ int tcg_gen_code(TCGContext *s, TranslationBlock *tb)
 #endif
 
 #ifdef CONFIG_PROFILER
-    qatomic_set(&prof->opt_time, prof->opt_time - profile_getclock());
+    start_time = profile_getclock();
 #endif
 
 #ifdef USE_TCG_OPTIMIZATIONS
@@ -4288,8 +4292,9 @@ int tcg_gen_code(TCGContext *s, TranslationBlock *tb)
 #endif
 
 #ifdef CONFIG_PROFILER
-    qatomic_set(&prof->opt_time, prof->opt_time + profile_getclock());
-    qatomic_set(&prof->la_time, prof->la_time - profile_getclock());
+    end_time = profile_getclock();
+    qatomic_add(&prof->opt_time, end_time - start_time);
+    start_time = end_time;
 #endif
 
     reachable_code_pass(s);
@@ -4314,7 +4319,8 @@ int tcg_gen_code(TCGContext *s, TranslationBlock *tb)
     }
 
 #ifdef CONFIG_PROFILER
-    qatomic_set(&prof->la_time, prof->la_time + profile_getclock());
+    end_time = profile_getclock();
+    qatomic_add(&prof->la_time, end_time - start_time);
 #endif
 
 #ifdef DEBUG_DISAS
