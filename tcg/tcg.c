@@ -2252,7 +2252,7 @@ void tcg_op_remove(TCGContext *s, TCGOp *op)
     s->nb_ops--;
 
 #ifdef CONFIG_PROFILER
-    qatomic_set(&s->prof->del_op_count, s->prof->del_op_count + 1);
+    qatomic_inc(&s->prof->del_op_count);
 #endif
 }
 
@@ -4356,7 +4356,7 @@ int tcg_gen_code(TCGContext *s, TranslationBlock *tb)
         TCGOpcode opc = op->opc;
 
 #ifdef CONFIG_PROFILER
-        qatomic_set(&prof->table_op_count[opc], prof->table_op_count[opc] + 1);
+        qatomic_inc(&prof->table_op_count[opc]);
 #endif
 
         switch (opc) {

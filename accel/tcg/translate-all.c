@@ -372,9 +372,8 @@ static int cpu_restore_state_from_tb(CPUState *cpu, TranslationBlock *tb,
     restore_state_to_opc(env, tb, data);
 
 #ifdef CONFIG_PROFILER
-    qatomic_set(&prof->restore_time,
-                prof->restore_time + profile_getclock() - ti);
-    qatomic_set(&prof->restore_count, prof->restore_count + 1);
+    qatomic_add(&prof->restore_time, profile_getclock() - ti);
+    qatomic_inc(&prof->restore_count);
 #endif
     return 0;
 }
@@ -1433,7 +1432,7 @@ TranslationBlock *tb_gen_code(CPUState *cpu,
 
 #ifdef CONFIG_PROFILER
     /* includes aborted translations because of exceptions */
-    qatomic_set(&prof->tb_count1, prof->tb_count1 + 1);
+    qatomic_inc(&prof->tb_count1);
     ti = profile_getclock();
 #endif
 
@@ -1465,9 +1464,8 @@ TranslationBlock *tb_gen_code(CPUState *cpu,
     }
 
 #ifdef CONFIG_PROFILER
-    qatomic_set(&prof->tb_count, prof->tb_count + 1);
-    qatomic_set(&prof->interm_time,
-                prof->interm_time + profile_getclock() - ti);
+    qatomic_inc(&prof->tb_count);
+    qatomic_add(&prof->interm_time, profile_getclock() - ti);
     ti = profile_getclock();
 #endif
 
@@ -1519,10 +1517,10 @@ TranslationBlock *tb_gen_code(CPUState *cpu,
     tb->tc.size = gen_code_size;
 
 #ifdef CONFIG_PROFILER
-    qatomic_set(&prof->code_time, prof->code_time + profile_getclock() - ti);
-    qatomic_set(&prof->code_in_len, prof->code_in_len + tb->size);
-    qatomic_set(&prof->code_out_len, prof->code_out_len + gen_code_size);
-    qatomic_set(&prof->search_out_len, prof->search_out_len + search_size);
+    qatomic_add(&prof->code_time, profile_getclock() - ti);
+    qatomic_add(&prof->code_in_len, tb->size);
+    qatomic_add(&prof->code_out_len, gen_code_size);
+    qatomic_add(&prof->search_out_len, search_size);
 #endif
 
 #ifdef DEBUG_DISAS
