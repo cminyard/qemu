@@ -68,8 +68,7 @@ int tcg_cpus_exec(CPUState *cpu)
     ret = cpu_exec(cpu);
     cpu_exec_end(cpu);
 #ifdef CONFIG_PROFILER
-    qatomic_set(&tcg_ctx->prof.cpu_exec_time,
-                tcg_ctx->prof.cpu_exec_time + profile_getclock() - ti);
+    qatomic_add(&tcg_ctx->prof.cpu_exec_time, profile_getclock() - ti);
 #endif
     return ret;
 }
