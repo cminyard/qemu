@@ -4466,6 +4466,20 @@ int tcg_gen_code(TCGContext *s, TranslationBlock *tb)
 }
 
 #ifdef CONFIG_PROFILER
+void tcg_prof_add_tb_flush_pc(CPUState *cpu, int type)
+{
+    TCGProfile *prof = tcg_ctx->prof;
+    int pos;
+    target_ulong pc, cs_base;
+    uint32_t flags;
+
+    cpu_get_tb_cpu_state(cpu->env_ptr, &pc, &cs_base, &flags);
+
+    pos = qatomic_inc_fetch(&prof->tb_flush_pcs_pos) % NR_TB_FLUSH_PCS;
+    prof->tb_flush_pcs_type[pos] = type;
+    prof->tb_flush_pcs[pos] = pc;
+}
+
 void tcg_dump_info(GString *buf)
 {
     TCGProfile prof = {};

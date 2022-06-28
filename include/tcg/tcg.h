@@ -1247,4 +1247,8 @@ static inline const TCGOpcode *tcg_swap_vecop_list(const TCGOpcode *n)
 
 bool tcg_can_emit_vecop_list(const TCGOpcode *, TCGType, unsigned);
 
+#ifdef CONFIG_PROFILER
+void tcg_prof_add_tb_flush_pc(CPUState *cpu, int type);
+#endif
+
 #endif /* TCG_H */

@@ -82,13 +82,28 @@ static void *attach_shm_region(key_t key, size_t size)
 
 static TCGProfile *prof;
 
+static const char *tb_flush_type_str(int type)
+{
+    switch(type) {
+    case TB_FLUSH_TYPE_FORK:  return "f";
+    case TB_FLUSH_TYPE_EXIT:  return "e";
+    case TB_FLUSH_TYPE_SHMAT: return "s";
+    case TB_FLUSH_TYPE_MMAP:  return "m";
+    case TB_FLUSH_TYPE_SPAPR: return "p";
+    default: return "?";
+    }
+}
+
 static int tcg_prof_handler(int argc, char **argv)
 {
 #ifndef CONFIG_PROFILER
     error_exit("Profiler not enabled in qemu\n");
 #else
     int i;
+    int *type = prof->tb_flush_pcs_type;
+    uint64_t *pcs = prof->tb_flush_pcs;
 #define DUMP64(v) printf("%s:\t%lld\n", stringify(v), (long long) prof->v)
+#define DUMP32(v) printf("%s:\t%d\n", stringify(v), prof->v)
 #define DUMP(v) printf("%s:\t%d\n", stringify(v), prof->v)
     DUMP64(cpu_exec_time);
     DUMP64(tb_count1);
@@ -117,6 +132,16 @@ static int tcg_prof_handler(int argc, char **argv)
     DUMP64(tb_flush_loader);
     DUMP64(tb_flush_exit);
     DUMP64(tb_flush_spapr);
+    DUMP32(tb_flush_pcs_pos);
+    for (i = 0; i < NR_TB_FLUSH_PCS; i += 4) {
+        printf("%3d: %s:%16.16" PRIx64 " %s:%16.16" PRIx64
+               " %s:%16.16" PRIx64 " %s:%16.16" PRIx64 "\n",
+               i,
+               tb_flush_type_str(type[i]), pcs[i],
+               tb_flush_type_str(type[i + 1]), pcs[i + 1],
+               tb_flush_type_str(type[i + 2]), pcs[i + 2],
+               tb_flush_type_str(type[i + 3]), pcs[i + 3]);
+    }
     for (i = 0; i < prof->num_ops; i++) {
         printf("table_op_count[%d]:\t%lld\n", i,
                (long long) prof->table_op_count[i]);

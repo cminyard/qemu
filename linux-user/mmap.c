@@ -469,6 +469,7 @@ abi_long target_mmap(abi_ulong start, abi_ulong len, int target_prot,
             tb_flush(cpu);
 #ifdef CONFIG_PROFILER
             qatomic_inc(&tcg_ctx->prof->tb_flush_mmap);
+            tcg_prof_add_tb_flush_pc(cpu, TB_FLUSH_TYPE_MMAP);
 #endif
         }
     }

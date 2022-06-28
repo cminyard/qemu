@@ -1,3 +1,12 @@
+
+#define TB_FLUSH_TYPE_FORK      1
+#define TB_FLUSH_TYPE_EXIT      2
+#define TB_FLUSH_TYPE_SHMAT     3
+#define TB_FLUSH_TYPE_MMAP      4
+#define TB_FLUSH_TYPE_SPAPR     5
+
+#define NR_TB_FLUSH_PCS 128 /* Must be a power of 2 */
+
 typedef struct TCGProfile {
     int64_t cpu_exec_time;
     int64_t tb_count1;
@@ -26,6 +35,9 @@ typedef struct TCGProfile {
     int64_t tb_flush_loader;
     int64_t tb_flush_exit;
     int64_t tb_flush_spapr;
+    int tb_flush_pcs_type[NR_TB_FLUSH_PCS];
+    uint64_t tb_flush_pcs[NR_TB_FLUSH_PCS];
+    uint32_t tb_flush_pcs_pos;
     int num_ops;
     int64_t table_op_count[NB_OPS];
 } TCGProfile;

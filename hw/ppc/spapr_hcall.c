@@ -297,6 +297,7 @@ static target_ulong h_page_init(PowerPCCPU *cpu, SpaprMachineState *spapr,
             tb_flush(CPU(cpu));
 #ifdef CONFIG_PROFILER
             qatomic_inc(&tcg_ctx->prof->tb_flush_spapr);
+            tcg_prof_add_tb_flush_pc(cpu, TB_FLUSH_TYPE_SPAPR);
 #endif
         }
     }

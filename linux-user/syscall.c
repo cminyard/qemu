@@ -4528,6 +4528,7 @@ static inline abi_ulong do_shmat(CPUArchState *cpu_env,
         tb_flush(cpu);
 #ifdef CONFIG_PROFILER
         qatomic_inc(&tcg_ctx->prof->tb_flush_shmat);
+        tcg_prof_add_tb_flush_pc(cpu, TB_FLUSH_TYPE_SHMAT);
 #endif
     }
 
@@ -6610,6 +6611,7 @@ static int do_fork(CPUArchState *env, unsigned int flags, abi_ulong newsp,
             tb_flush(cpu);
 #ifdef CONFIG_PROFILER
             qatomic_inc(&tcg_ctx->prof->tb_flush_fork);
+            tcg_prof_add_tb_flush_pc(cpu, TB_FLUSH_TYPE_FORK);
 #endif
         }
 

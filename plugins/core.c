@@ -30,6 +30,10 @@
 #include "plugin.h"
 #include "qemu/compiler.h"
 
+#ifdef CONFIG_PROFILER
+extern __thread CPUState *thread_cpu;
+#endif
+
 struct qemu_plugin_cb {
     struct qemu_plugin_ctx *ctx;
     union qemu_plugin_cb_sig f;
@@ -516,7 +520,9 @@ void qemu_plugin_user_exit(void)
 
     tb_flush(current_cpu);
 #ifdef CONFIG_PROFILER
+    cpu = thread_cpu;
     qatomic_inc(&tcg_ctx->prof->tb_flush_exit);
+    tcg_prof_add_tb_flush_pc(cpu, TB_FLUSH_TYPE_EXIT);
 #endif
 
     CPU_FOREACH(cpu) {
