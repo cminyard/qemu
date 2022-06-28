@@ -22,6 +22,9 @@
 #include "qemu.h"
 #include "user-internals.h"
 #include "user-mmap.h"
+#ifdef CONFIG_PROFILER
+#include "tcg/tcg.h"
+#endif
 
 static pthread_mutex_t mmap_mutex = PTHREAD_MUTEX_INITIALIZER;
 static __thread int mmap_lock_count;
@@ -464,6 +467,9 @@ abi_long target_mmap(abi_ulong start, abi_ulong len, int target_prot,
         if (!(cpu->tcg_cflags & CF_PARALLEL)) {
             cpu->tcg_cflags |= CF_PARALLEL;
             tb_flush(cpu);
+#ifdef CONFIG_PROFILER
+            qatomic_inc(&tcg_ctx->prof->tb_flush_mmap);
+#endif
         }
     }
 

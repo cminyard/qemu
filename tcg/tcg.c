@@ -4162,6 +4162,16 @@ void tcg_profile_snapshot(TCGProfile *prof, bool counters, bool table)
             PROF_ADD(prof, orig, opt_time);
             PROF_ADD(prof, orig, restore_count);
             PROF_ADD(prof, orig, restore_time);
+            PROF_ADD(prof, orig, tb_flush);
+            PROF_ADD(prof, orig, tb_flush_when_full);
+            PROF_ADD(prof, orig, tb_flush_cpu);
+            PROF_ADD(prof, orig, tb_flush_gdbstub);
+            PROF_ADD(prof, orig, tb_flush_mmap);
+            PROF_ADD(prof, orig, tb_flush_shmat);
+            PROF_ADD(prof, orig, tb_flush_fork);
+            PROF_ADD(prof, orig, tb_flush_loader);
+            PROF_ADD(prof, orig, tb_flush_exit);
+            PROF_ADD(prof, orig, tb_flush_spapr);
         }
         if (table) {
             int i;
@@ -4490,6 +4500,27 @@ void tcg_dump_info(GString *buf)
     g_string_append_printf(buf, "avg search data/TB  %0.1f\n",
                            (double)s->search_out_len / tb_div_count);
     
+    g_string_append_printf(buf, "tb_flush            %" PRId64 "\n",
+                           s->tb_flush);
+    g_string_append_printf(buf, "tb_flush_when_full  %" PRId64 "\n",
+                           s->tb_flush_when_full);
+    g_string_append_printf(buf, "tb_flush_cpu        %" PRId64 "\n",
+                           s->tb_flush_cpu);
+    g_string_append_printf(buf, "tb_flush_gdbstub    %" PRId64 "\n",
+                           s->tb_flush_gdbstub);
+    g_string_append_printf(buf, "tb_flush_mmap       %" PRId64 "\n",
+                           s->tb_flush_mmap);
+    g_string_append_printf(buf, "tb_flush_shmat      %" PRId64 "\n",
+                           s->tb_flush_shmat);
+    g_string_append_printf(buf, "tb_flush_fork       %" PRId64 "\n",
+                           s->tb_flush_fork);
+    g_string_append_printf(buf, "tb_flush_loader     %" PRId64 "\n",
+                           s->tb_flush_loader);
+    g_string_append_printf(buf, "tb_flush_exit       %" PRId64 "\n",
+                           s->tb_flush_exit);
+    g_string_append_printf(buf, "tb_flush_spapr      %" PRId64 "\n",
+                           s->tb_flush_spapr);
+
     g_string_append_printf(buf, "cycles/op           %0.1f\n",
                            s->op_count ? (double)tot / s->op_count : 0);
     g_string_append_printf(buf, "cycles/in byte      %0.1f\n",

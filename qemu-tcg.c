@@ -107,6 +107,16 @@ static int tcg_prof_handler(int argc, char **argv)
     DUMP64(opt_time);
     DUMP64(restore_count);
     DUMP64(restore_time);
+    DUMP64(tb_flush);
+    DUMP64(tb_flush_when_full);
+    DUMP64(tb_flush_cpu);
+    DUMP64(tb_flush_gdbstub);
+    DUMP64(tb_flush_mmap);
+    DUMP64(tb_flush_shmat);
+    DUMP64(tb_flush_fork);
+    DUMP64(tb_flush_loader);
+    DUMP64(tb_flush_exit);
+    DUMP64(tb_flush_spapr);
     for (i = 0; i < prof->num_ops; i++) {
         printf("table_op_count[%d]:\t%lld\n", i,
                (long long) prof->table_op_count[i]);

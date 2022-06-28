@@ -1015,6 +1015,9 @@ void tb_flush(CPUState *cpu)
                                   RUN_ON_CPU_HOST_INT(tb_flush_count));
         }
     }
+#ifdef CONFIG_PROFILER
+    qatomic_inc(&tcg_ctx->prof->tb_flush);
+#endif
 }
 
 /*
@@ -1414,6 +1417,9 @@ TranslationBlock *tb_gen_code(CPUState *cpu,
     if (unlikely(!tb)) {
         /* flush must be done */
         tb_flush(cpu);
+#ifdef CONFIG_PROFILER
+        qatomic_inc(&prof->tb_flush_when_full);
+#endif
         mmap_unlock();
         /* Make the execution loop process the flush as soon as possible.  */
         cpu->exception_index = EXCP_INTERRUPT;

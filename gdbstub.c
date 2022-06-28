@@ -41,6 +41,9 @@
 #include "hw/cpu/cluster.h"
 #include "hw/boards.h"
 #endif
+#ifdef CONFIG_PROFILER
+#include "tcg/tcg.h"
+#endif
 
 #define MAX_PACKET_LENGTH 4096
 
@@ -2823,6 +2826,9 @@ static void gdb_vm_state_change(void *opaque, bool running, RunState state)
             trace_gdbstub_hit_break();
         }
         tb_flush(cpu);
+#ifdef CONFIG_PROFILER
+        qatomic_inc(&tcg_ctx->prof->tb_flush_gdbstub);
+#endif
         ret = GDB_SIGNAL_TRAP;
         break;
     case RUN_STATE_PAUSED:
@@ -3162,6 +3168,9 @@ gdb_handlesig(CPUState *cpu, int sig)
     /* disable single step if it was enabled */
     cpu_single_step(cpu, 0);
     tb_flush(cpu);
+#ifdef CONFIG_PROFILER
+    qatomic_inc(&tcg_ctx->prof->tb_flush_gdbstub);
+#endif
 
     if (sig != 0) {
         gdb_set_stop_cpu(cpu);

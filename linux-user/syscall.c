@@ -4526,6 +4526,9 @@ static inline abi_ulong do_shmat(CPUArchState *cpu_env,
     if (!(cpu->tcg_cflags & CF_PARALLEL)) {
         cpu->tcg_cflags |= CF_PARALLEL;
         tb_flush(cpu);
+#ifdef CONFIG_PROFILER
+        qatomic_inc(&tcg_ctx->prof->tb_flush_shmat);
+#endif
     }
 
     if (shmaddr)
@@ -6605,6 +6608,9 @@ static int do_fork(CPUArchState *env, unsigned int flags, abi_ulong newsp,
         if (!(cpu->tcg_cflags & CF_PARALLEL)) {
             cpu->tcg_cflags |= CF_PARALLEL;
             tb_flush(cpu);
+#ifdef CONFIG_PROFILER
+            qatomic_inc(&tcg_ctx->prof->tb_flush_fork);
+#endif
         }
 
         /* we create a new CPU instance. */

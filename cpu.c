@@ -62,6 +62,9 @@ static int cpu_common_post_load(void *opaque, int version_id)
      * which will now be stale.
      */
     tb_flush(cpu);
+#ifdef CONFIG_PROFILER
+    qatomic_inc(&tcg_ctx->prof->tb_flush_cpu);
+#endif
 
     return 0;
 }

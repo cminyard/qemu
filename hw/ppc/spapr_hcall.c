@@ -295,6 +295,9 @@ static target_ulong h_page_init(PowerPCCPU *cpu, SpaprMachineState *spapr,
             kvmppc_icbi_range(cpu, pdst, len);
         } else {
             tb_flush(CPU(cpu));
+#ifdef CONFIG_PROFILER
+            qatomic_inc(&tcg_ctx->prof->tb_flush_spapr);
+#endif
         }
     }
 
