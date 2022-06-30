@@ -4172,6 +4172,10 @@ void tcg_profile_snapshot(TCGProfile *prof, bool counters, bool table)
             PROF_ADD(prof, orig, tb_flush_loader);
             PROF_ADD(prof, orig, tb_flush_exit);
             PROF_ADD(prof, orig, tb_flush_spapr);
+            PROF_ADD(prof, orig, tb_jmp_hash_collision);
+            PROF_ADD(prof, orig, tb_hash_physpc_bad);
+            PROF_ADD(prof, orig, tb_hash_lookup_fail);
+            PROF_ADD(prof, orig, tb_hash_insert_fail);
         }
         if (table) {
             int i;
@@ -4534,6 +4538,14 @@ void tcg_dump_info(GString *buf)
                            s->tb_flush_exit);
     g_string_append_printf(buf, "tb_flush_spapr      %" PRId64 "\n",
                            s->tb_flush_spapr);
+    g_string_append_printf(buf, "tb_jmp_hash_collision %" PRId64 "\n",
+                           s->tb_jmp_hash_collision);
+    g_string_append_printf(buf, "tb_hash_physpc_bad  %" PRId64 "\n",
+                           s->tb_hash_physpc_bad);
+    g_string_append_printf(buf, "tb_hash_lookup_fail %" PRId64 "\n",
+                           s->tb_hash_lookup_fail);
+    g_string_append_printf(buf, "tb_hash_insert_fail %" PRId64 "\n",
+                           s->tb_hash_insert_fail);
 
     g_string_append_printf(buf, "cycles/op           %0.1f\n",
                            s->op_count ? (double)tot / s->op_count : 0);

@@ -1358,6 +1358,9 @@ tb_link_page(TranslationBlock *tb, tb_page_addr_t phys_pc,
 
     /* remove TB from the page(s) if we couldn't insert it */
     if (unlikely(existing_tb)) {
+#ifdef CONFIG_PROFILER
+        qatomic_inc(&tcg_ctx->prof->tb_hash_insert_fail);
+#endif
         tb_page_remove(p, tb);
         invalidate_page_bitmap(p);
         if (p2) {

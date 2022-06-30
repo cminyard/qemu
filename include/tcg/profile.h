@@ -35,6 +35,10 @@ typedef struct TCGProfile {
     int64_t tb_flush_loader;
     int64_t tb_flush_exit;
     int64_t tb_flush_spapr;
+    int64_t tb_jmp_hash_collision;
+    int64_t tb_hash_physpc_bad;
+    int64_t tb_hash_lookup_fail;
+    int64_t tb_hash_insert_fail;
     int tb_flush_pcs_type[NR_TB_FLUSH_PCS];
     uint64_t tb_flush_pcs[NR_TB_FLUSH_PCS];
     uint32_t tb_flush_pcs_pos;

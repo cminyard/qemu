@@ -132,6 +132,10 @@ static int tcg_prof_handler(int argc, char **argv)
     DUMP64(tb_flush_loader);
     DUMP64(tb_flush_exit);
     DUMP64(tb_flush_spapr);
+    DUMP64(tb_jmp_hash_collision);
+    DUMP64(tb_hash_physpc_bad);
+    DUMP64(tb_hash_lookup_fail);
+    DUMP64(tb_hash_insert_fail);
     DUMP32(tb_flush_pcs_pos);
     for (i = 0; i < NR_TB_FLUSH_PCS; i += 4) {
         printf("%3d: %s:%16.16" PRIx64 " %s:%16.16" PRIx64

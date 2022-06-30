@@ -193,6 +193,13 @@ static inline TranslationBlock *tb_lookup(CPUState *cpu, target_ulong pc,
                tb_cflags(tb) == cflags)) {
         return tb;
     }
+
+#ifdef CONFIG_PROFILER
+    if (tb) {
+        qatomic_inc(&tcg_ctx->prof->tb_jmp_hash_collision);
+    }
+#endif
+
     tb = tb_htable_lookup(cpu, pc, cs_base, flags, cflags);
     if (tb == NULL) {
         return NULL;
@@ -531,6 +538,7 @@ TranslationBlock *tb_htable_lookup(CPUState *cpu, target_ulong pc,
     tb_page_addr_t phys_pc;
     struct tb_desc desc;
     uint32_t h;
+    TranslationBlock *tb;
 
     desc.env = cpu->env_ptr;
     desc.cs_base = cs_base;
@@ -540,11 +548,20 @@ TranslationBlock *tb_htable_lookup(CPUState *cpu, target_ulong pc,
     desc.pc = pc;
     phys_pc = get_page_addr_code(desc.env, pc);
     if (phys_pc == -1) {
+#ifdef CONFIG_PROFILER
+        qatomic_inc(&tcg_ctx->prof->tb_hash_physpc_bad);
+#endif
         return NULL;
     }
     desc.phys_page1 = phys_pc & TARGET_PAGE_MASK;
     h = tb_hash_func(phys_pc, pc, flags, cflags, *cpu->trace_dstate);
-    return qht_lookup_custom(&tb_ctx.htable, &desc, h, tb_lookup_cmp);
+    tb = qht_lookup_custom(&tb_ctx.htable, &desc, h, tb_lookup_cmp);
+#ifdef CONFIG_PROFILER
+    if (!tb) {
+        qatomic_inc(&tcg_ctx->prof->tb_hash_lookup_fail);
+    }
+#endif
+    return tb;
 }
 
 void tb_set_jmp_target(TranslationBlock *tb, int n, uintptr_t addr)
