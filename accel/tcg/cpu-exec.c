@@ -497,7 +497,7 @@ struct tb_desc {
     target_ulong pc;
     target_ulong cs_base;
     CPUArchState *env;
-    tb_page_addr_t phys_page1;
+    tb_page_addr_t page_addr[2];
     uint32_t flags;
     uint32_t cflags;
     uint32_t trace_vcpu_dstate;
@@ -509,23 +509,17 @@ static bool tb_lookup_cmp(const void *p, const void *d)
     const struct tb_desc *desc = d;
 
     if (tb->pc == desc->pc &&
-        tb->page_addr[0] == desc->phys_page1 &&
+        tb->page_addr[0] == desc->page_addr[0] &&
         tb->cs_base == desc->cs_base &&
         tb->flags == desc->flags &&
         tb->trace_vcpu_dstate == desc->trace_vcpu_dstate &&
-        tb_cflags(tb) == desc->cflags) {
+        (tb_cflags(tb) & ~CF_INVALID) == (desc->cflags & ~CF_INVALID)) {
         /* check next page if needed */
         if (tb->page_addr[1] == -1) {
             return true;
-        } else {
-            tb_page_addr_t phys_page2;
-            target_ulong virt_page2;
-
-            virt_page2 = (desc->pc & TARGET_PAGE_MASK) + TARGET_PAGE_SIZE;
-            phys_page2 = get_page_addr_code(desc->env, virt_page2);
-            if (tb->page_addr[1] == phys_page2) {
-                return true;
-            }
+        }
+        if (tb->page_addr[1] == desc->page_addr[1]) {
+            return true;
         }
     }
     return false;
@@ -539,6 +533,7 @@ TranslationBlock *tb_htable_lookup(CPUState *cpu, target_ulong pc,
     struct tb_desc desc;
     uint32_t h;
     TranslationBlock *tb;
+    target_ulong virt_page2;
 
     desc.env = cpu->env_ptr;
     desc.cs_base = cs_base;
@@ -553,7 +548,9 @@ TranslationBlock *tb_htable_lookup(CPUState *cpu, target_ulong pc,
 #endif
         return NULL;
     }
-    desc.phys_page1 = phys_pc & TARGET_PAGE_MASK;
+    desc.page_addr[0] = phys_pc & TARGET_PAGE_MASK;
+    virt_page2 = (pc + TARGET_PAGE_MASK) & TARGET_PAGE_MASK;
+    desc.page_addr[1] = get_page_addr_code(desc.env, virt_page2);
     h = tb_hash_func(phys_pc, pc, flags, cflags, *cpu->trace_dstate);
     tb = qht_lookup_custom(&tb_ctx.htable, &desc, h, tb_lookup_cmp);
 #ifdef CONFIG_PROFILER
