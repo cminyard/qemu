@@ -1384,16 +1384,14 @@ tb_link_page(TranslationBlock *tb, tb_page_addr_t phys_pc,
 }
 
 /* Called with mmap_lock held for user mode emulation.  */
-TranslationBlock *tb_gen_code(CPUState *cpu,
-                              target_ulong pc, target_ulong cs_base,
-                              uint32_t flags, int cflags)
+TranslationBlock *tb_gen_code(struct tb_desc *desc)
 {
-    CPUArchState *env = cpu->env_ptr;
     TranslationBlock *tb, *existing_tb;
-    tb_page_addr_t phys_pc, phys_page2;
+    tb_page_addr_t phys_page2;
     target_ulong virt_page2;
     tcg_insn_unit *gen_code_buf;
     int gen_code_size, search_size, max_insns;
+    uint32_t cflags = desc->cflags;
 #ifdef CONFIG_PROFILER
     TCGProfile *prof = tcg_ctx->prof;
     int64_t ti;
@@ -1402,9 +1400,7 @@ TranslationBlock *tb_gen_code(CPUState *cpu,
     assert_memory_lock();
     qemu_thread_jit_write();
 
-    phys_pc = get_page_addr_code(env, pc);
-
-    if (phys_pc == -1) {
+    if (desc->phys_pc == -1) {
         /* Generate a one-shot TB with 1 insn in it */
         cflags = (cflags & ~CF_COUNT_MASK) | CF_LAST_IO | 1;
     }
@@ -1419,23 +1415,23 @@ TranslationBlock *tb_gen_code(CPUState *cpu,
     tb = tcg_tb_alloc(tcg_ctx);
     if (unlikely(!tb)) {
         /* flush must be done */
-        tb_flush(cpu);
+        tb_flush(desc->cpu);
 #ifdef CONFIG_PROFILER
         qatomic_inc(&prof->tb_flush_when_full);
 #endif
         mmap_unlock();
         /* Make the execution loop process the flush as soon as possible.  */
-        cpu->exception_index = EXCP_INTERRUPT;
-        cpu_loop_exit(cpu);
+        desc->cpu->exception_index = EXCP_INTERRUPT;
+        cpu_loop_exit(desc->cpu);
     }
 
     gen_code_buf = tcg_ctx->code_gen_ptr;
     tb->tc.ptr = tcg_splitwx_to_rx(gen_code_buf);
-    tb->pc = pc;
-    tb->cs_base = cs_base;
-    tb->flags = flags;
+    tb->pc = desc->pc;
+    tb->cs_base = desc->cs_base;
+    tb->flags = desc->flags;
     tb->cflags = cflags;
-    tb->trace_vcpu_dstate = *cpu->trace_dstate;
+    tb->trace_vcpu_dstate = desc->trace_vcpu_dstate;
     tcg_ctx->tb_cflags = cflags;
  tb_overflow:
 
@@ -1452,8 +1448,8 @@ TranslationBlock *tb_gen_code(CPUState *cpu,
 
     tcg_func_start(tcg_ctx);
 
-    tcg_ctx->cpu = env_cpu(env);
-    gen_intermediate_code(cpu, tb, max_insns);
+    tcg_ctx->cpu = env_cpu(desc->env);
+    gen_intermediate_code(desc->cpu, tb, max_insns);
     assert(tb->size != 0);
     tcg_ctx->cpu = NULL;
     max_insns = tb->icount;
@@ -1627,7 +1623,7 @@ TranslationBlock *tb_gen_code(CPUState *cpu,
      * except fill in the page_addr[] fields. Return early before
      * attempting to link to other TBs or add to the lookup table.
      */
-    if (phys_pc == -1) {
+    if (desc->phys_pc == -1) {
         tb->page_addr[0] = tb->page_addr[1] = -1;
         return tb;
     }
@@ -1640,16 +1636,16 @@ TranslationBlock *tb_gen_code(CPUState *cpu,
     tcg_tb_insert(tb);
 
     /* check next page if needed */
-    virt_page2 = (pc + tb->size - 1) & TARGET_PAGE_MASK;
+    virt_page2 = (desc->pc + tb->size - 1) & TARGET_PAGE_MASK;
     phys_page2 = -1;
-    if ((pc & TARGET_PAGE_MASK) != virt_page2) {
-        phys_page2 = get_page_addr_code(env, virt_page2);
+    if ((desc->pc & TARGET_PAGE_MASK) != virt_page2) {
+        phys_page2 = get_page_addr_code(desc->env, virt_page2);
     }
     /*
      * No explicit memory barrier is required -- tb_link_page() makes the
      * TB visible in a consistent state.
      */
-    existing_tb = tb_link_page(tb, phys_pc, phys_page2);
+    existing_tb = tb_link_page(tb, desc->phys_pc, phys_page2);
     /* if the TB already exists, discard what we just translated */
     if (unlikely(existing_tb != tb)) {
         uintptr_t orig_aligned = (uintptr_t)gen_code_buf;

@@ -55,6 +55,8 @@ typedef struct SyncClocks {
     int64_t realtime_clock;
 } SyncClocks;
 
+static TranslationBlock *tb_htable_lookup(struct tb_desc *desc);
+
 #if !defined(CONFIG_USER_ONLY)
 /* Allow the guest to have a max 3ms advance.
  * The difference between the 2 clocks could therefore
@@ -172,25 +174,23 @@ uint32_t curr_cflags(CPUState *cpu)
 }
 
 /* Might cause an exception, so have a longjmp destination ready */
-static inline TranslationBlock *tb_lookup(CPUState *cpu, target_ulong pc,
-                                          target_ulong cs_base,
-                                          uint32_t flags, uint32_t cflags)
+static inline TranslationBlock *tb_lookup(struct tb_desc *desc)
 {
     TranslationBlock *tb;
     uint32_t hash;
 
     /* we should never be trying to look up an INVALID tb */
-    tcg_debug_assert(!(cflags & CF_INVALID));
+    tcg_debug_assert(!(desc->cflags & CF_INVALID));
 
-    hash = tb_jmp_cache_hash_func(pc);
-    tb = qatomic_rcu_read(&cpu->tb_jmp_cache[hash]);
+    hash = tb_jmp_cache_hash_func(desc->pc);
+    tb = qatomic_rcu_read(&desc->cpu->tb_jmp_cache[hash]);
 
     if (likely(tb &&
-               tb->pc == pc &&
-               tb->cs_base == cs_base &&
-               tb->flags == flags &&
-               tb->trace_vcpu_dstate == *cpu->trace_dstate &&
-               tb_cflags(tb) == cflags)) {
+               tb->pc == desc->pc &&
+               tb->cs_base == desc->cs_base &&
+               tb->flags == desc->flags &&
+               tb->trace_vcpu_dstate == desc->trace_vcpu_dstate &&
+               tb_cflags(tb) == desc->cflags)) {
         return tb;
     }
 
@@ -200,11 +200,11 @@ static inline TranslationBlock *tb_lookup(CPUState *cpu, target_ulong pc,
     }
 #endif
 
-    tb = tb_htable_lookup(cpu, pc, cs_base, flags, cflags);
+    tb = tb_htable_lookup(desc);
     if (tb == NULL) {
         return NULL;
     }
-    qatomic_set(&cpu->tb_jmp_cache[hash], tb);
+    qatomic_set(&desc->cpu->tb_jmp_cache[hash], tb);
     return tb;
 }
 
@@ -308,6 +308,31 @@ static bool check_for_breakpoints(CPUState *cpu, target_ulong pc,
     return false;
 }
 
+static void fillin_tb_desc(struct tb_desc *desc, CPUState *cpu, target_ulong pc,
+                           target_ulong cs_base, uint32_t flags,
+                           uint32_t cflags)
+{
+    target_ulong virt_page2;
+
+    desc->cpu = cpu;
+    desc->env = cpu->env_ptr;
+    desc->cs_base = cs_base;
+    desc->flags = flags;
+    desc->cflags = cflags;
+    desc->trace_vcpu_dstate = *cpu->trace_dstate;
+    desc->pc = pc;
+    desc->phys_pc = get_page_addr_code(desc->env, pc);
+    if (desc->phys_pc == -1) {
+#ifdef CONFIG_PROFILER
+        qatomic_inc(&tcg_ctx->prof->tb_hash_physpc_bad);
+#endif
+        return;
+    }
+    desc->page_addr[0] = desc->phys_pc & TARGET_PAGE_MASK;
+    virt_page2 = (pc + TARGET_PAGE_MASK) & TARGET_PAGE_MASK;
+    desc->page_addr[1] = get_page_addr_code(desc->env, virt_page2);
+}
+
 /**
  * helper_lookup_tb_ptr: quick check for next tb
  * @env: current cpu state
@@ -322,6 +347,7 @@ const void *HELPER(lookup_tb_ptr)(CPUArchState *env)
     TranslationBlock *tb;
     target_ulong cs_base, pc;
     uint32_t flags, cflags;
+    struct tb_desc desc;
 
     cpu_get_tb_cpu_state(env, &pc, &cs_base, &flags);
 
@@ -330,7 +356,8 @@ const void *HELPER(lookup_tb_ptr)(CPUArchState *env)
         cpu_loop_exit(cpu);
     }
 
-    tb = tb_lookup(cpu, pc, cs_base, flags, cflags);
+    fillin_tb_desc(&desc, cpu, pc, cs_base, flags, cflags);
+    tb = tb_lookup(&desc);
     if (tb == NULL) {
         return tcg_code_gen_epilogue;
     }
@@ -408,7 +435,6 @@ cpu_tb_exec(CPUState *cpu, TranslationBlock *itb, int *tb_exit)
     return last_tb;
 }
 
-
 static void cpu_exec_enter(CPUState *cpu)
 {
     CPUClass *cc = CPU_GET_CLASS(cpu);
@@ -434,6 +460,7 @@ void cpu_exec_step_atomic(CPUState *cpu)
     target_ulong cs_base, pc;
     uint32_t flags, cflags;
     int tb_exit;
+    struct tb_desc desc;
 
     if (sigsetjmp(cpu->jmp_env, 0) == 0) {
         start_exclusive();
@@ -455,10 +482,11 @@ void cpu_exec_step_atomic(CPUState *cpu)
          * Any breakpoint for this insn will have been recognized earlier.
          */
 
-        tb = tb_lookup(cpu, pc, cs_base, flags, cflags);
+        fillin_tb_desc(&desc, cpu, pc, cs_base, flags, cflags);
+        tb = tb_lookup(&desc);
         if (tb == NULL) {
             mmap_lock();
-            tb = tb_gen_code(cpu, pc, cs_base, flags, cflags);
+            tb = tb_gen_code(&desc);
             mmap_unlock();
         }
 
@@ -493,16 +521,6 @@ void cpu_exec_step_atomic(CPUState *cpu)
     end_exclusive();
 }
 
-struct tb_desc {
-    target_ulong pc;
-    target_ulong cs_base;
-    CPUArchState *env;
-    tb_page_addr_t page_addr[2];
-    uint32_t flags;
-    uint32_t cflags;
-    uint32_t trace_vcpu_dstate;
-};
-
 static bool tb_lookup_cmp(const void *p, const void *d)
 {
     const TranslationBlock *tb = p;
@@ -525,33 +543,15 @@ static bool tb_lookup_cmp(const void *p, const void *d)
     return false;
 }
 
-TranslationBlock *tb_htable_lookup(CPUState *cpu, target_ulong pc,
-                                   target_ulong cs_base, uint32_t flags,
-                                   uint32_t cflags)
+static TranslationBlock *tb_htable_lookup(struct tb_desc *desc)
 {
-    tb_page_addr_t phys_pc;
-    struct tb_desc desc;
     uint32_t h;
     TranslationBlock *tb;
-    target_ulong virt_page2;
 
-    desc.env = cpu->env_ptr;
-    desc.cs_base = cs_base;
-    desc.flags = flags;
-    desc.cflags = cflags;
-    desc.trace_vcpu_dstate = *cpu->trace_dstate;
-    desc.pc = pc;
-    phys_pc = get_page_addr_code(desc.env, pc);
-    if (phys_pc == -1) {
-#ifdef CONFIG_PROFILER
-        qatomic_inc(&tcg_ctx->prof->tb_hash_physpc_bad);
-#endif
+    if (desc->phys_pc == -1)
         return NULL;
-    }
-    desc.page_addr[0] = phys_pc & TARGET_PAGE_MASK;
-    virt_page2 = (pc + TARGET_PAGE_MASK) & TARGET_PAGE_MASK;
-    desc.page_addr[1] = get_page_addr_code(desc.env, virt_page2);
-    h = tb_hash_func(phys_pc, pc, flags, cflags, *cpu->trace_dstate);
+    h = tb_hash_func(desc->phys_pc, desc->pc, desc->flags, desc->cflags,
+                     desc->trace_vcpu_dstate);
     tb = qht_lookup_custom(&tb_ctx.htable, &desc, h, tb_lookup_cmp);
 #ifdef CONFIG_PROFILER
     if (!tb) {
@@ -906,6 +906,7 @@ int cpu_exec(CPUState *cpu)
 {
     int ret;
     SyncClocks sc = { 0 };
+    struct tb_desc desc;
 
     /* replay_interrupt may need current_cpu */
     current_cpu = cpu;
@@ -989,10 +990,11 @@ int cpu_exec(CPUState *cpu)
                 break;
             }
 
-            tb = tb_lookup(cpu, pc, cs_base, flags, cflags);
+            fillin_tb_desc(&desc, cpu, pc, cs_base, flags, cflags);
+            tb = tb_lookup(&desc);
             if (tb == NULL) {
                 mmap_lock();
-                tb = tb_gen_code(cpu, pc, cs_base, flags, cflags);
+                tb = tb_gen_code(&desc);
                 mmap_unlock();
                 /*
                  * We add the TB in the virtual pc hash table
