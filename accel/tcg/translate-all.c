@@ -1358,9 +1358,6 @@ tb_link_page(TranslationBlock *tb, tb_page_addr_t phys_pc,
 
     /* remove TB from the page(s) if we couldn't insert it */
     if (unlikely(existing_tb)) {
-#ifdef CONFIG_PROFILER
-        qatomic_inc(&tcg_ctx->prof->tb_hash_insert_fail);
-#endif
         tb_page_remove(p, tb);
         invalidate_page_bitmap(p);
         if (p2) {
@@ -1491,6 +1488,9 @@ TranslationBlock *tb_gen_code(struct tb_desc *desc)
             qemu_log_mask(CPU_LOG_TB_OP | CPU_LOG_TB_OP_OPT,
                           "Restarting code generation for "
                           "code_gen_buffer overflow\n");
+#ifdef CONFIG_PROFILER
+            qatomic_inc(&prof->tb_buffer_overflow1);
+#endif
             goto buffer_overflow;
 
         case -2:
@@ -1509,6 +1509,9 @@ TranslationBlock *tb_gen_code(struct tb_desc *desc)
                           "Restarting code generation with "
                           "smaller translation block (max %d insns)\n",
                           max_insns);
+#ifdef CONFIG_PROFILER
+            qatomic_inc(&prof->tb_overflow);
+#endif
             goto tb_overflow;
 
         default:
@@ -1517,6 +1520,9 @@ TranslationBlock *tb_gen_code(struct tb_desc *desc)
     }
     search_size = encode_search(tb, (void *)gen_code_buf + gen_code_size);
     if (unlikely(search_size < 0)) {
+#ifdef CONFIG_PROFILER
+        qatomic_inc(&prof->tb_buffer_overflow2);
+#endif
         goto buffer_overflow;
     }
     tb->tc.size = gen_code_size;
@@ -1650,6 +1656,25 @@ TranslationBlock *tb_gen_code(struct tb_desc *desc)
     if (unlikely(existing_tb != tb)) {
         uintptr_t orig_aligned = (uintptr_t)gen_code_buf;
 
+#ifdef CONFIG_PROFILER
+        int p;
+
+        p = qatomic_inc_fetch(&prof->tb_hash_insert_fail) % NR_TB_INSERT_FAILS;
+        prof->fail_old[p].pc = tb->pc;
+        prof->fail_old[p].cs_base = tb->cs_base;
+        prof->fail_old[p].page_addr[0] = tb->page_addr[0];
+        prof->fail_old[p].page_addr[1] = tb->page_addr[1];
+        prof->fail_old[p].flags = tb->flags;
+        prof->fail_old[p].cflags = tb->cflags;
+        prof->fail_old[p].trace_vcpu_dstate = tb->trace_vcpu_dstate;
+        prof->fail_new[p].pc = desc->pc;
+        prof->fail_new[p].cs_base = desc->cs_base;
+        prof->fail_new[p].page_addr[0] = desc->page_addr[0];
+        prof->fail_new[p].page_addr[1] = desc->page_addr[1];
+        prof->fail_new[p].flags = desc->flags;
+        prof->fail_new[p].cflags = tb->cflags;
+        prof->fail_new[p].trace_vcpu_dstate = desc->trace_vcpu_dstate;
+#endif
         orig_aligned -= ROUND_UP(sizeof(*tb), qemu_icache_linesize);
         qatomic_set(&tcg_ctx->code_gen_ptr, (void *)orig_aligned);
         tcg_tb_remove(tb);

@@ -6,6 +6,16 @@
 #define TB_FLUSH_TYPE_SPAPR     5
 
 #define NR_TB_FLUSH_PCS 128 /* Must be a power of 2 */
+#define NR_TB_INSERT_FAILS 128 /* Must be a power of 2 */
+
+struct prof_tb_insert_fail {
+    uint64_t pc;
+    uint64_t cs_base;
+    uint64_t page_addr[2];
+    uint32_t flags;
+    uint32_t cflags;
+    uint32_t trace_vcpu_dstate;
+};
 
 typedef struct TCGProfile {
     int64_t cpu_exec_time;
@@ -39,6 +49,11 @@ typedef struct TCGProfile {
     int64_t tb_hash_physpc_bad;
     int64_t tb_hash_lookup_fail;
     int64_t tb_hash_insert_fail;
+    struct prof_tb_insert_fail fail_old[NR_TB_INSERT_FAILS];
+    struct prof_tb_insert_fail fail_new[NR_TB_INSERT_FAILS];
+    int64_t tb_overflow;
+    int64_t tb_buffer_overflow1;
+    int64_t tb_buffer_overflow2;
     int tb_flush_pcs_type[NR_TB_FLUSH_PCS];
     uint64_t tb_flush_pcs[NR_TB_FLUSH_PCS];
     uint32_t tb_flush_pcs_pos;

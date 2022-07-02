@@ -146,6 +146,26 @@ static int tcg_prof_handler(int argc, char **argv)
                tb_flush_type_str(type[i + 2]), pcs[i + 2],
                tb_flush_type_str(type[i + 3]), pcs[i + 3]);
     }
+    for (i = 0; i < NR_TB_FLUSH_PCS; i++) {
+        struct prof_tb_insert_fail *old, *new;
+        old = prof->fail_old + i;
+        new = prof->fail_new + i;
+        printf("%d:\n", i);
+        printf("  pc: %16.16"PRIx64" %16.16"PRIx64"\n",
+               old->pc, new->pc);
+        printf("  cs_base: %16.16"PRIx64" %16.16"PRIx64"\n",
+               old->cs_base, new->cs_base);
+        printf("  page_addr[0]: %16.16"PRIx64" %16.16"PRIx64"\n",
+               old->page_addr[0], new->page_addr[0]);
+        printf("  page_addr[1]: %16.16"PRIx64" %16.16"PRIx64"\n",
+               old->page_addr[1], new->page_addr[1]);
+        printf("  flags: %8.8x %8.8x\n",
+               old->flags, new->flags);
+        printf("  cflags: %8.8x %8.8x\n",
+               old->cflags, new->cflags);
+        printf("  dstate: %8.8x %8.8x\n",
+               old->trace_vcpu_dstate, new->trace_vcpu_dstate);
+    }
     for (i = 0; i < prof->num_ops; i++) {
         printf("table_op_count[%d]:\t%lld\n", i,
                (long long) prof->table_op_count[i]);
