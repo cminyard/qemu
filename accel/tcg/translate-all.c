@@ -1672,7 +1672,7 @@ TranslationBlock *tb_gen_code(struct tb_desc *desc)
         prof->fail_new[p].page_addr[0] = desc->page_addr[0];
         prof->fail_new[p].page_addr[1] = desc->page_addr[1];
         prof->fail_new[p].flags = desc->flags;
-        prof->fail_new[p].cflags = tb->cflags;
+        prof->fail_new[p].cflags = desc->cflags;
         prof->fail_new[p].trace_vcpu_dstate = desc->trace_vcpu_dstate;
 #endif
         orig_aligned -= ROUND_UP(sizeof(*tb), qemu_icache_linesize);
