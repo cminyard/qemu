@@ -533,7 +533,7 @@ static bool tb_lookup_cmp(const void *p, const void *d)
         tb->trace_vcpu_dstate == desc->trace_vcpu_dstate &&
         (tb_cflags(tb) & ~CF_INVALID) == (desc->cflags & ~CF_INVALID)) {
         /* check next page if needed */
-        if (tb->page_addr[1] == -1) {
+        if (tb->page_addr[1] == ((tb_page_addr_t) -1)) {
             return true;
         }
         if (tb->page_addr[1] == desc->page_addr[1]) {
