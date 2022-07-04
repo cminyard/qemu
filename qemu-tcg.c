@@ -146,7 +146,7 @@ static int tcg_prof_handler(int argc, char **argv)
                tb_flush_type_str(type[i + 2]), pcs[i + 2],
                tb_flush_type_str(type[i + 3]), pcs[i + 3]);
     }
-    for (i = 0; i < NR_TB_FLUSH_PCS; i++) {
+    for (i = 0; i < NR_TB_INSERT_FAILS; i++) {
         struct prof_tb_insert_fail *old, *new;
         old = prof->fail_old + i;
         new = prof->fail_new + i;
