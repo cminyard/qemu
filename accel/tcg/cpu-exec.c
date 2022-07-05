@@ -329,7 +329,7 @@ static void fillin_tb_desc(struct tb_desc *desc, CPUState *cpu, target_ulong pc,
         return;
     }
     desc->page_addr[0] = desc->phys_pc & TARGET_PAGE_MASK;
-    virt_page2 = (pc + TARGET_PAGE_MASK) & TARGET_PAGE_MASK;
+    virt_page2 = (pc + TARGET_PAGE_SIZE) & TARGET_PAGE_MASK;
     desc->page_addr[1] = get_page_addr_code(desc->env, virt_page2);
 }
 
@@ -552,7 +552,7 @@ static TranslationBlock *tb_htable_lookup(struct tb_desc *desc)
         return NULL;
     h = tb_hash_func(desc->phys_pc, desc->pc, desc->flags, desc->cflags,
                      desc->trace_vcpu_dstate);
-    tb = qht_lookup_custom(&tb_ctx.htable, &desc, h, tb_lookup_cmp);
+    tb = qht_lookup_custom(&tb_ctx.htable, desc, h, tb_lookup_cmp);
 #ifdef CONFIG_PROFILER
     if (!tb) {
         qatomic_inc(&tcg_ctx->prof->tb_hash_lookup_fail);
