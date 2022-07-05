@@ -48,6 +48,15 @@ typedef struct TCGProfile {
     int64_t tb_jmp_hash_collision;
     int64_t tb_hash_physpc_bad;
     int64_t tb_hash_lookup_fail;
+    int64_t tb_hash_lookup_succeed1;
+    int64_t tb_hash_lookup_succeed2;
+    int64_t tb_hash_lookup_fail1;
+    int64_t tb_hash_lookup_fail2;
+    int64_t tb_hash_lookup_fail3;
+    int64_t tb_hash_lookup_fail4;
+    int64_t tb_hash_lookup_fail5;
+    int64_t tb_hash_lookup_fail6;
+    int64_t tb_hash_lookup_fail7;
     int64_t tb_hash_insert_fail;
     struct prof_tb_insert_fail fail_old[NR_TB_INSERT_FAILS];
     struct prof_tb_insert_fail fail_new[NR_TB_INSERT_FAILS];

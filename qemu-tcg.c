@@ -136,6 +136,15 @@ static int tcg_prof_handler(int argc, char **argv)
     DUMP64(tb_hash_physpc_bad);
     DUMP64(tb_hash_lookup_fail);
     DUMP64(tb_hash_insert_fail);
+    DUMP64(tb_hash_lookup_succeed1);
+    DUMP64(tb_hash_lookup_succeed2);
+    DUMP64(tb_hash_lookup_fail1);
+    DUMP64(tb_hash_lookup_fail2);
+    DUMP64(tb_hash_lookup_fail3);
+    DUMP64(tb_hash_lookup_fail4);
+    DUMP64(tb_hash_lookup_fail5);
+    DUMP64(tb_hash_lookup_fail6);
+    DUMP64(tb_hash_lookup_fail7);
     DUMP32(tb_flush_pcs_pos);
     for (i = 0; i < NR_TB_FLUSH_PCS; i += 4) {
         printf("%3d: %s:%16.16" PRIx64 " %s:%16.16" PRIx64

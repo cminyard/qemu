@@ -525,20 +525,63 @@ static bool tb_lookup_cmp(const void *p, const void *d)
 {
     const TranslationBlock *tb = p;
     const struct tb_desc *desc = d;
+#ifdef CONFIG_PROFILER
+    TCGProfile *prof = tcg_ctx->prof;
+#endif
 
-    if (tb->pc == desc->pc &&
-        tb->page_addr[0] == desc->page_addr[0] &&
-        tb->cs_base == desc->cs_base &&
-        tb->flags == desc->flags &&
-        tb->trace_vcpu_dstate == desc->trace_vcpu_dstate &&
-        (tb_cflags(tb) & ~CF_INVALID) == (desc->cflags & ~CF_INVALID)) {
-        /* check next page if needed */
-        if (tb->page_addr[1] == ((tb_page_addr_t) -1)) {
-            return true;
-        }
-        if (tb->page_addr[1] == desc->page_addr[1]) {
-            return true;
-        }
+    if (tb->pc != desc->pc) {
+#ifdef CONFIG_PROFILER
+        qatomic_inc(&prof->tb_hash_lookup_fail1);
+#endif
+        return false;
+    }
+    if (tb->page_addr[0] != desc->page_addr[0]) {
+#ifdef CONFIG_PROFILER
+        qatomic_inc(&prof->tb_hash_lookup_fail2);
+#endif
+        return false;
+    }
+    if (tb->cs_base != desc->cs_base) {
+#ifdef CONFIG_PROFILER
+        qatomic_inc(&prof->tb_hash_lookup_fail3);
+#endif
+        return false;
+    }
+    if (tb->flags != desc->flags) {
+#ifdef CONFIG_PROFILER
+        qatomic_inc(&prof->tb_hash_lookup_fail4);
+#endif
+        return false;
+    }
+    if (tb->trace_vcpu_dstate != desc->trace_vcpu_dstate) {
+#ifdef CONFIG_PROFILER
+        qatomic_inc(&prof->tb_hash_lookup_fail5);
+#endif
+        return false;
+    }
+    if ((tb_cflags(tb) & ~CF_INVALID) != (desc->cflags & ~CF_INVALID)) {
+#ifdef CONFIG_PROFILER
+        qatomic_inc(&prof->tb_hash_lookup_fail6);
+#endif
+        return false;
+    }
+
+    /* check next page if needed */
+    if (tb->page_addr[1] == ((tb_page_addr_t) -1)) {
+#ifdef CONFIG_PROFILER
+        qatomic_inc(&prof->tb_hash_lookup_succeed1);
+#endif
+        return true;
+    }
+    if (tb->page_addr[1] == desc->page_addr[1]) {
+#ifdef CONFIG_PROFILER
+        qatomic_inc(&prof->tb_hash_lookup_succeed2);
+#endif
+        return true;
+    } else {
+#ifdef CONFIG_PROFILER
+        qatomic_inc(&prof->tb_hash_lookup_fail7);
+#endif
     }
     return false;
 }
