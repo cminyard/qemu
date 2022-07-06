@@ -7,6 +7,7 @@
 
 #define NR_TB_FLUSH_PCS 128 /* Must be a power of 2 */
 #define NR_TB_INSERT_FAILS 128 /* Must be a power of 2 */
+#define NR_PAGE_UNPROTECTS 128
 
 struct prof_tb_insert_fail {
     uint64_t pc;
@@ -58,6 +59,9 @@ typedef struct TCGProfile {
     int64_t tb_hash_lookup_fail6;
     int64_t tb_hash_lookup_fail7;
     int64_t tb_hash_insert_fail;
+    int64_t page_unprotects;
+    uint64_t page_unprotect_loc[NR_PAGE_UNPROTECTS];
+    uint64_t page_unprotect_pc[NR_PAGE_UNPROTECTS];
     struct prof_tb_insert_fail fail_old[NR_TB_INSERT_FAILS];
     struct prof_tb_insert_fail fail_new[NR_TB_INSERT_FAILS];
     int64_t tb_overflow;

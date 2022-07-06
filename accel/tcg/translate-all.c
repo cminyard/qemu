@@ -2452,11 +2452,21 @@ int page_unprotect(target_ulong address, uintptr_t pc)
     bool current_tb_invalidated;
     PageDesc *p;
     target_ulong host_start, host_end, addr;
+#ifdef CONFIG_PROFILER
+    int64_t page_prot_pos;
+#endif
 
     /* Technically this isn't safe inside a signal handler.  However we
        know this only ever happens in a synchronous SEGV handler, so in
        practice it seems to be ok.  */
     mmap_lock();
+
+#ifdef CONFIG_PROFILER
+    page_prot_pos = qatomic_inc_fetch(&tcg_ctx->prof->page_unprotects) %
+        NR_PAGE_UNPROTECTS;
+    tcg_ctx->prof->page_unprotect_loc[page_prot_pos] = address;
+    tcg_ctx->prof->page_unprotect_pc[page_prot_pos] = pc;
+#endif
 
     p = page_find(address >> TARGET_PAGE_BITS);
     if (!p) {

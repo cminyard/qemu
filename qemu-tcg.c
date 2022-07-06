@@ -155,6 +155,11 @@ static int tcg_prof_handler(int argc, char **argv)
                tb_flush_type_str(type[i + 2]), pcs[i + 2],
                tb_flush_type_str(type[i + 3]), pcs[i + 3]);
     }
+    DUMP64(page_unprotects);
+    for (i = 0; i < NR_PAGE_UNPROTECTS; i++) {
+        printf("%3d: pc:%16.16" PRIx64 " loc:%16.16" PRIx64 "\n",
+               i, prof->page_unprotect_pc[i], prof->page_unprotect_loc[i]);
+    }
     for (i = 0; i < NR_TB_INSERT_FAILS; i++) {
         struct prof_tb_insert_fail *old, *new;
         old = prof->fail_old + i;
