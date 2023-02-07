@@ -28,6 +28,7 @@
 #include "exec/memory.h"
 #include "hw/qdev-core.h"
 #include "qom/object.h"
+#include "hw/sysbus.h"
 
 #define MAX_IPMI_MSG_SIZE 300
 
@@ -180,7 +181,7 @@ OBJECT_DECLARE_TYPE(IPMIBmc, IPMIBmcClass,
                     IPMI_BMC)
 
 struct IPMIBmc {
-    DeviceState parent;
+    SysBusDevice parent;
 
     uint8_t slave_addr;
 
@@ -266,6 +267,7 @@ void ipmi_bmc_gen_event(IPMIBmc *b, uint8_t *evt, bool log);
 #define TYPE_IPMI_BMC_SIMULATOR "ipmi-bmc-sim"
 OBJECT_DECLARE_SIMPLE_TYPE(IPMIBmcSim, IPMI_BMC_SIMULATOR)
 
+#define TYPE_IPMI_BMC_EXTERN "ipmi-bmc-extern"
 
 typedef struct RspBuffer {
     uint8_t buffer[MAX_IPMI_MSG_SIZE];

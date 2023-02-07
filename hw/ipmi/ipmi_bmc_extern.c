@@ -62,7 +62,6 @@
 #define   VM_CAPABILITIES_GRACEFUL_SHUTDOWN 0x20
 #define VM_CMD_GRACEFUL_SHUTDOWN   0x09
 
-#define TYPE_IPMI_BMC_EXTERN "ipmi-bmc-extern"
 OBJECT_DECLARE_SIMPLE_TYPE(IPMIBmcExtern, IPMI_BMC_EXTERN)
 struct IPMIBmcExtern {
     IPMIBmc parent;
@@ -526,6 +525,7 @@ static void ipmi_bmc_extern_class_init(ObjectClass *oc, void *data)
 
     bk->handle_command = ipmi_bmc_extern_handle_command;
     bk->handle_reset = ipmi_bmc_extern_handle_reset;
+    dc->user_creatable = true;
     dc->hotpluggable = false;
     dc->realize = ipmi_bmc_extern_realize;
     device_class_set_props(dc, ipmi_bmc_extern_properties);

@@ -30,6 +30,8 @@
 #include "qapi/error.h"
 #include "qemu/module.h"
 #include "hw/nmi.h"
+#include "hw/boards.h"
+#include "sysemu/sysemu.h"
 
 static uint32_t ipmi_current_uuid = 1;
 
@@ -122,7 +124,7 @@ static void bmc_class_init(ObjectClass *oc, void *data)
 
 static const TypeInfo ipmi_bmc_type_info = {
     .name = TYPE_IPMI_BMC,
-    .parent = TYPE_DEVICE,
+    .parent = TYPE_SYS_BUS_DEVICE,
     .instance_size = sizeof(IPMIBmc),
     .abstract = true,
     .class_size = sizeof(IPMIBmcClass),

@@ -66,6 +66,7 @@
 #include "hw/mem/nvdimm.h"
 #include "hw/i386/acpi-build.h"
 #include "kvm/kvm-cpu.h"
+#include "hw/ipmi/ipmi.h"
 
 #define MAX_IDE_BUS 2
 
@@ -450,6 +451,8 @@ static void pc_i440fx_machine_options(MachineClass *m)
     m->default_display = "std";
     machine_class_allow_dynamic_sysbus_dev(m, TYPE_RAMFB_DEVICE);
     machine_class_allow_dynamic_sysbus_dev(m, TYPE_VMBUS_BRIDGE);
+    machine_class_allow_dynamic_sysbus_dev(m, TYPE_IPMI_BMC_SIMULATOR);
+    machine_class_allow_dynamic_sysbus_dev(m, TYPE_IPMI_BMC_EXTERN);
 }
 
 static void pc_i440fx_8_0_machine_options(MachineClass *m)
