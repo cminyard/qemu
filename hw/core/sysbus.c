@@ -110,6 +110,41 @@ qemu_irq sysbus_get_connected_irq(SysBusDevice *dev, int n)
     return qdev_get_gpio_out_connector(d, SYSBUS_DEVICE_GPIO_IRQ, n);
 }
 
+struct sysbus_default_irq_search {
+    int n;
+    DeviceState *dev;
+};
+
+static int check_dev_irq(DeviceState *dev, void *opaque)
+{
+    SysBusDevice *sbdev;
+    struct sysbus_default_irq_search *info = opaque;
+
+    sbdev = (SysBusDevice *) object_dynamic_cast(OBJECT(dev),
+                                                 TYPE_SYS_BUS_DEVICE);
+    if (!sbdev)
+        return 0;
+    if (sysbus_has_irq(sbdev, info->n)) {
+        info->dev = dev;
+        return -1;
+    }
+    return 0;
+}
+
+qemu_irq sysbus_default_get_connected_irq(int n, Error **errp)
+{
+    struct sysbus_default_irq_search info = { .n = n, .dev = NULL };
+    int rv = qbus_walk_children(sysbus_get_default(), check_dev_irq, NULL,
+                                NULL, NULL, &info);
+
+    if (rv == 0) {
+        error_set(errp, ERROR_CLASS_DEVICE_NOT_FOUND,
+                  "System bus interrupt '%d' not found", n);
+        return NULL;
+    }
+    return qdev_get_gpio_out_connector(info.dev, SYSBUS_DEVICE_GPIO_IRQ, n);
+}
+
 void sysbus_connect_irq(SysBusDevice *dev, int n, qemu_irq irq)
 {
     SysBusDeviceClass *sbd = SYS_BUS_DEVICE_GET_CLASS(dev);
