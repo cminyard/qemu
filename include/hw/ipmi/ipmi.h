@@ -183,6 +183,7 @@ struct IPMIBmc {
     DeviceState parent;
 
     uint8_t slave_addr;
+    uint8_t instance;
 
     IPMIInterface *intf;
 };

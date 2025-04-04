@@ -2188,7 +2188,7 @@ static void ipmi_sim_realize(DeviceState *dev, Error **errp)
 
     ibs->timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, ipmi_timeout, ibs);
 
-    vmstate_register(NULL, 0, &vmstate_ipmi_sim, ibs);
+    vmstate_register(NULL, b->instance, &vmstate_ipmi_sim, ibs);
 }
 
 static const Property ipmi_sim_properties[] = {

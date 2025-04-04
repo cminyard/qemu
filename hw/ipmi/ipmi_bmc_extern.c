@@ -488,7 +488,8 @@ static const VMStateDescription vmstate_ipmi_bmc_extern = {
 
 static void ipmi_bmc_extern_realize(DeviceState *dev, Error **errp)
 {
-    IPMIBmcExtern *ibe = IPMI_BMC_EXTERN(dev);
+    IPMIBmc *b = IPMI_BMC(dev);
+    IPMIBmcExtern *ibe = IPMI_BMC_EXTERN(b);
 
     if (!qemu_chr_fe_backend_connected(&ibe->chr)) {
         error_setg(errp, "IPMI external bmc requires chardev attribute");
@@ -498,7 +499,7 @@ static void ipmi_bmc_extern_realize(DeviceState *dev, Error **errp)
     qemu_chr_fe_set_handlers(&ibe->chr, can_receive, receive,
                              chr_event, NULL, ibe, NULL, true);
 
-    vmstate_register(NULL, 0, &vmstate_ipmi_bmc_extern, ibe);
+    vmstate_register(NULL, b->instance, &vmstate_ipmi_bmc_extern, ibe);
 }
 
 static void ipmi_bmc_extern_init(Object *obj)

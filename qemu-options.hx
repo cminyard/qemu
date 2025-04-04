@@ -1120,6 +1120,10 @@ SRST
     ``slave_addr=val``
         Define slave address to use for the BMC. The default is 0x20.
 
+    ``instance=val``
+        For more than one BMC on the same system, each instance needs
+	a unique number.  The default is 0.
+
     ``sdrfile=file``
         file containing raw Sensor Data Records (SDR) data. The default
         is none.
@@ -1137,7 +1141,7 @@ SRST
         is set, get "Get GUID" command to the BMC will return it.
         Otherwise "Get GUID" will return an error.
 
-``-device ipmi-bmc-extern,id=id,chardev=id[,slave_addr=val]``
+``-device ipmi-bmc-extern,id=id,chardev=id[,slave_addr=val][,instance=id]``
     Add a connection to an external IPMI BMC simulator. Instead of
     locally emulating the BMC like the above item, instead connect to an
     external entity that provides the IPMI services.
@@ -1150,6 +1154,9 @@ SRST
     the VM. It's best if QEMU makes a connection to an external
     simulator running on a secure port on localhost, so neither the
     simulator nor QEMU is exposed to any outside network.
+
+    You can have more than one external BMC connection with this, but
+    you must set a unique instance for each BMC.
 
     See the "lanserv/README.vm" file in the OpenIPMI library for more
     details on the external interface.
