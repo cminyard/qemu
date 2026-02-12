@@ -66,6 +66,9 @@ typedef struct IPMIKCS {
     void *opaque;
 
     bool use_irq;
+
+    /* Disable the interface, used for testing. */
+    bool disable;
 } IPMIKCS;
 
 void ipmi_kcs_get_fwinfo(IPMIKCS *ik, IPMIFwInfo *info);

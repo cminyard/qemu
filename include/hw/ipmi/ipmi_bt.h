@@ -63,6 +63,9 @@ typedef struct IPMIBT {
     void *opaque;
 
     bool use_irq;
+
+    /* Disable the interface, used for testing. */
+    bool disable;
 } IPMIBT;
 
 void ipmi_bt_get_fwinfo(IPMIBT *ik, IPMIFwInfo *info);

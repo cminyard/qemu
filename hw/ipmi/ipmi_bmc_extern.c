@@ -60,7 +60,10 @@
 #define   VM_CAPABILITIES_NMI      0x08
 #define   VM_CAPABILITIES_ATTN     0x10
 #define   VM_CAPABILITIES_GRACEFUL_SHUTDOWN 0x20
+#define   VM_CAPABILITIES_ENABLE   0x40
 #define VM_CMD_GRACEFUL_SHUTDOWN   0x09
+#define VM_CMD_DISABLE             0x0a
+#define VM_CMD_ENABLE              0x0b
 
 #define TYPE_IPMI_BMC_EXTERN "ipmi-bmc-extern"
 OBJECT_DECLARE_SIMPLE_TYPE(IPMIBmcExtern, IPMI_BMC_EXTERN)
@@ -275,6 +278,16 @@ static void handle_hw_op(IPMIBmcExtern *ibe, unsigned char hw_op)
     case VM_CMD_GRACEFUL_SHUTDOWN:
         k->do_hw_op(s, IPMI_SHUTDOWN_VIA_ACPI_OVERTEMP, 0);
         break;
+
+    case VM_CMD_DISABLE:
+        if (k->control)
+            k->control(s, IPMI_DISABLE_INTERFACE);
+        break;
+
+    case VM_CMD_ENABLE:
+        if (k->control)
+            k->control(s, IPMI_ENABLE_INTERFACE);
+        break;
     }
 }
 
@@ -407,6 +420,7 @@ static void chr_event(void *opaque, QEMUChrEvent event)
         if (k->do_hw_op(ibe->parent.intf, IPMI_SEND_NMI, 1) == 0) {
             v |= VM_CAPABILITIES_NMI;
         }
+        v |= VM_CAPABILITIES_ENABLE;
         addchar(ibe, v);
         ibe->outbuf[ibe->outlen] = VM_CMD_CHAR;
         ibe->outlen++;
