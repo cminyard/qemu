@@ -231,6 +231,10 @@ static void ipmi_bt_ioport_write(void *opaque, hwaddr addr, uint64_t val,
     IPMIInterfaceClass *iic = IPMI_INTERFACE_GET_CLASS(ii);
     IPMIBT *ib = iic->get_backend_data(ii);
 
+    if (ib->disable) {
+        return;
+    }
+
     switch (addr & ib->size_mask) {
     case 0:
         if (IPMI_BT_GET_CLR_WR(val)) {
@@ -350,6 +354,22 @@ static void ipmi_bt_set_irq_enable(IPMIInterface *ii, int val)
     ib->irqs_enabled = val;
 }
 
+static void ipmi_bt_control(struct IPMIInterface *ii, enum ipmi_control_op op)
+{
+    IPMIInterfaceClass *iic = IPMI_INTERFACE_GET_CLASS(ii);
+    IPMIBT *ib = iic->get_backend_data(ii);
+
+    switch (op) {
+    case IPMI_DISABLE_INTERFACE:
+        ib->disable = true;
+        break;
+
+    case IPMI_ENABLE_INTERFACE:
+        ib->disable = false;
+        break;
+    }
+}
+
 static void ipmi_bt_init(IPMIInterface *ii, unsigned int min_size, Error **errp)
 {
     IPMIInterfaceClass *iic = IPMI_INTERFACE_GET_CLASS(ii);
@@ -434,4 +454,5 @@ void ipmi_bt_class_init(IPMIInterfaceClass *iic)
     iic->handle_if_event = ipmi_bt_handle_event;
     iic->set_irq_enable = ipmi_bt_set_irq_enable;
     iic->reset = ipmi_bt_handle_reset;
+    iic->control = ipmi_bt_control;
 }

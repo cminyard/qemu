@@ -222,7 +222,6 @@ static void ipmi_kcs_handle_rsp(IPMIInterface *ii, uint8_t msg_id,
     }
 }
 
-
 static uint64_t ipmi_kcs_ioport_read(void *opaque, hwaddr addr, unsigned size)
 {
     IPMIInterface *ii = opaque;
@@ -264,6 +263,10 @@ static void ipmi_kcs_ioport_write(void *opaque, hwaddr addr, uint64_t val,
     IPMIInterface *ii = opaque;
     IPMIInterfaceClass *iic = IPMI_INTERFACE_GET_CLASS(ii);
     IPMIKCS *ik = iic->get_backend_data(ii);
+
+    if (ik->disable) {
+        return;
+    }
 
     if (IPMI_KCS_GET_IBF(ik->status_reg)) {
         return;
@@ -325,6 +328,22 @@ static void ipmi_kcs_set_irq_enable(IPMIInterface *ii, int val)
     IPMIKCS *ik = iic->get_backend_data(ii);
 
     ik->irqs_enabled = val;
+}
+
+static void ipmi_kcs_control(struct IPMIInterface *ii, enum ipmi_control_op op)
+{
+    IPMIInterfaceClass *iic = IPMI_INTERFACE_GET_CLASS(ii);
+    IPMIKCS *ik = iic->get_backend_data(ii);
+
+    switch (op) {
+    case IPMI_DISABLE_INTERFACE:
+        ik->disable = true;
+        break;
+
+    case IPMI_ENABLE_INTERFACE:
+        ik->disable = false;
+        break;
+    }
 }
 
 /* min_size must be a power of 2. */
@@ -419,4 +438,5 @@ void ipmi_kcs_class_init(IPMIInterfaceClass *iic)
     iic->handle_rsp = ipmi_kcs_handle_rsp;
     iic->handle_if_event = ipmi_kcs_handle_event;
     iic->set_irq_enable = ipmi_kcs_set_irq_enable;
+    iic->control = ipmi_kcs_control;
 }

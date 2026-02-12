@@ -41,6 +41,11 @@ enum ipmi_op {
     IPMI_SEND_NMI
 };
 
+enum ipmi_control_op {
+    IPMI_DISABLE_INTERFACE,
+    IPMI_ENABLE_INTERFACE,
+};
+
 /* Channel properties */
 #define IPMI_CHANNEL_IPMB                0x00
 #define IPMI_CHANNEL_SYSTEM              0x0f
@@ -186,6 +191,11 @@ struct IPMIInterfaceClass {
      * Return the firmware info for a device.
      */
     void (*get_fwinfo)(struct IPMIInterface *s, IPMIFwInfo *info);
+
+    /*
+     * Low-level operation on the hardware.
+     */
+    void (*control)(struct IPMIInterface *s, enum ipmi_control_op op);
 };
 
 /*
