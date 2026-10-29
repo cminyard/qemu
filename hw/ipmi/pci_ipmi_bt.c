@@ -38,17 +38,6 @@ struct PCIIPMIBTDevice {
     uint32_t uuid;
 };
 
-static void pci_ipmi_bt_get_fwinfo(struct IPMIInterface *ii, IPMIFwInfo *info)
-{
-    PCIIPMIBTDevice *pib = PCI_IPMI_BT(ii);
-
-    ipmi_bt_get_fwinfo(&pib->bt, info);
-    info->irq_source = IPMI_PCI_IRQ;
-    info->interrupt_number = pci_intx(&pib->dev);
-    info->i2c_slave_address = pib->bt.bmc->slave_addr;
-    info->uuid = pib->uuid;
-}
-
 static void pci_ipmi_raise_irq(IPMIBT *ib)
 {
     PCIIPMIBTDevice *pib = ib->opaque;
@@ -136,7 +125,6 @@ static void pci_ipmi_bt_class_init(ObjectClass *oc, const void *data)
 
     iic->get_backend_data = pci_ipmi_bt_get_backend_data;
     ipmi_bt_class_init(iic);
-    iic->get_fwinfo = pci_ipmi_bt_get_fwinfo;
 }
 
 static const TypeInfo pci_ipmi_bt_info = {
